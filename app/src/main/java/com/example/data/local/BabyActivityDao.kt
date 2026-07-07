@@ -30,4 +30,7 @@ interface BabyActivityDao {
 
     @Query("UPDATE baby_activities SET isDeleted = 1, updatedAt = :updatedAt WHERE id = :id")
     suspend fun softDeleteActivity(id: String, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM baby_activities")
+    suspend fun deleteAllActivities()
 }

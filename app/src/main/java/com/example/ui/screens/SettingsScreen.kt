@@ -459,6 +459,81 @@ fun SettingsScreen(
                 }
             }
 
+            // Danger Zone Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Danger Zone",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    Text(
+                        text = "Erase all recorded feedings, sleeps, and changes from both this local device and the server permanently. This cannot be undone.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+
+                    var showConfirmDialog by remember { mutableStateOf(false) }
+
+                    if (showConfirmDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showConfirmDialog = false },
+                            title = { Text("Erase All Synced Data?") },
+                            text = { Text("Are you absolutely sure? This will permanently delete all activities from both this local device and your self-hosted Docker server.") },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        showConfirmDialog = false
+                                        viewModel.eraseAllData { success, msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("Erase Everything")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showConfirmDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    Button(
+                        onClick = { showConfirmDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("erase_all_data_button"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(imageVector = Icons.Default.DeleteForever, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Erase All Synced Data")
+                    }
+                }
+            }
+
             // Section 3: Docker & Unraid Setup Instructions (Real local privacy benefit)
             Card(
                 modifier = Modifier.fillMaxWidth(),

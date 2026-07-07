@@ -266,6 +266,16 @@
                     </div>
                     <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
                 </div>
+
+                <hr class="border-[#E7E0EC] dark:border-[#49454F]">
+
+                <!-- Danger Zone -->
+                <div class="space-y-3">
+                    <label class="block text-xs font-bold text-red-500 dark:text-red-400 uppercase tracking-wider mb-1">Danger Zone</label>
+                    <button onclick="eraseAllData()" class="w-full py-3 px-4 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm border border-red-200 dark:border-red-900/50">
+                        <i class="fa-solid fa-trash-can-arrow-up"></i> Erase All Synced Data
+                    </button>
+                </div>
             </div>
 
             <!-- Stats & Quick Info -->
@@ -488,26 +498,11 @@
                     <i class="fa-solid fa-list-check text-[#6750A4] dark:text-[#D0BCFF]"></i> Historic Activity Log
                 </h3>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[500px]">
-                        <thead>
-                            <tr class="border-b border-[#E7E0EC] dark:border-[#49454F] text-xs text-[#625B71] dark:text-[#CCC2DC] font-bold uppercase tracking-wider">
-                                <th class="pb-3 pl-2 w-1/4">Time</th>
-                                <th class="pb-3 w-1/5">Type</th>
-                                <th class="pb-3 w-2/5">Activity Specifics</th>
-                                <th class="pb-3 w-1/5">Notes</th>
-                                <th class="pb-3 text-right pr-2">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logs-tbody" class="text-sm divide-y divide-[#E7E0EC] dark:divide-[#49454F]">
-                            <tr>
-                                <td colspan="5" class="py-8 text-center text-[#79747E]">
-                                    <i class="fa-solid fa-baby-carriage text-2xl mb-2 text-[#CAC4D0]"></i>
-                                    <p>Loading activity logs...</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div id="logs-container" class="space-y-4">
+                    <div class="py-8 text-center text-[#79747E]">
+                        <i class="fa-solid fa-baby-carriage text-2xl mb-2 text-[#CAC4D0]"></i>
+                        <p>Loading activity logs...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -922,19 +917,58 @@
             }
         }
 
+        function toggleMonthSection(key) {
+            const section = document.getElementById(`section-${key}`);
+            const chevron = document.getElementById(`chevron-${key}`);
+            if (section && chevron) {
+                if (section.classList.contains('hidden')) {
+                    section.classList.remove('hidden');
+                    chevron.classList.remove('fa-chevron-down');
+                    chevron.classList.add('fa-chevron-up');
+                } else {
+                    section.classList.add('hidden');
+                    chevron.classList.remove('fa-chevron-up');
+                    chevron.classList.add('fa-chevron-down');
+                }
+            }
+        }
+
+        async function eraseAllData() {
+            const confirmed1 = confirm("⚠️ WARNING: This will permanently delete ALL recorded activities and logs from BOTH this local application and the server.\n\nAre you absolutely sure you want to proceed?");
+            if (!confirmed1) return;
+
+            const confirmed2 = confirm("⚠️ DOUBLE VERIFICATION: This action CANNOT BE UNDONE. Please ensure you have backed up or exported your CSV if needed.\n\nType 'OK' or click OK to proceed with erasing all data.");
+            if (!confirmed2) return;
+
+            try {
+                const res = await fetch('/api/activities', {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    activities = [];
+                    renderData();
+                    alert("All synced data has been successfully deleted from the app and server database.");
+                } else {
+                    const errData = await res.json();
+                    alert("Failed to delete server database: " + (errData.error || "Unknown error"));
+                }
+            } catch (err) {
+                console.error("Error erasing all data:", err);
+                alert("Network error or server unreachable. Could not delete server data.");
+            }
+        }
+
         function renderData() {
             // Sort desc
             activities.sort((a,b) => b.timestamp - a.timestamp);
 
-            const tbody = document.getElementById('logs-tbody');
+            const container = document.getElementById('logs-container');
             if (activities.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-8 text-center text-stone-400">
-                            <i class="fa-solid fa-cookie-bite text-3xl mb-2 text-stone-300"></i>
-                            <p>No activity logs recorded yet. Use the form to record one!</p>
-                        </td>
-                    </tr>
+                container.innerHTML = `
+                    <div class="py-8 text-center text-stone-400">
+                        <i class="fa-solid fa-cookie-bite text-3xl mb-2 text-stone-300"></i>
+                        <p>No activity logs recorded yet. Use the form to record one!</p>
+                    </div>
                 `;
                 updateStats(0, 0, 0, 0);
                 renderCharts([]);
@@ -950,21 +984,15 @@
             let nappyCount = 0;
             let medsCount = 0;
 
-            let rowsHtml = '';
+            const groups = {}; // key: "YYYY-MM", value: { title: "June 2026", items: [] }
+
             activities.forEach(a => {
                 const date = new Date(a.timestamp);
-                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString([], { month: 'short', day: 'numeric' });
                 
-                let iconClass = '';
-                let badgeClass = '';
-                let displayType = a.type;
+                // Track daily counters for today
                 if (a.type === 'FEEDING') {
-                    iconClass = 'fa-solid fa-bottle-milk';
-                    badgeClass = 'bg-sky-100 text-sky-800';
                     if (a.timestamp >= todayStart.getTime()) feedCount++;
                 } else if (a.type === 'SLEEP') {
-                    iconClass = 'fa-solid fa-moon';
-                    badgeClass = 'bg-indigo-100 text-indigo-800';
                     if (a.timestamp >= todayStart.getTime()) {
                         try {
                             const details = JSON.parse(a.detailsJson);
@@ -972,56 +1000,135 @@
                         } catch (e){}
                     }
                 } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
-                    iconClass = 'fa-solid fa-baby-carriage';
-                    badgeClass = 'bg-pink-100 text-pink-800';
-                    displayType = 'NAPPY';
                     if (a.timestamp >= todayStart.getTime()) nappyCount++;
                 } else if (a.type === 'MEDICATION') {
-                    iconClass = 'fa-solid fa-pills';
-                    badgeClass = 'bg-emerald-100 text-emerald-800';
-                    displayType = 'MEDICATION';
                     if (a.timestamp >= todayStart.getTime()) medsCount++;
                 }
 
-                let detailsText = '';
-                try {
-                    const details = JSON.parse(a.detailsJson);
-                    if (a.type === 'FEEDING') {
-                        detailsText = `${details.method || 'Bottle'}: ${details.amount || 0} ${details.unit || 'ml'} (${details.durationMinutes || 0} mins)`;
-                    } else if (a.type === 'SLEEP') {
-                        detailsText = `Asleep for ${details.durationMinutes || 0} mins`;
-                    } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
-                        detailsText = `Status: ${details.status || 'Wet'}`;
-                    } else if (a.type === 'MEDICATION') {
-                        detailsText = `${details.name || 'Unspecified'} (${details.dosage || 'No dosage'} - ${details.frequency || 'No frequency'})`;
-                    }
-                } catch(e) {
-                    detailsText = a.detailsJson;
-                }
+                // Grouping by Month
+                const year = date.getFullYear();
+                const monthIndex = date.getMonth();
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const monthName = monthNames[monthIndex];
+                const groupKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
 
-                rowsHtml += `
-                    <tr class="hover:bg-stone-50/50">
-                        <td class="py-3.5 pl-2 text-stone-500 font-semibold text-xs">${timeStr}</td>
-                        <td class="py-3.5">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">
-                                <i class="${iconClass}"></i> ${displayType}
-                            </span>
-                        </td>
-                        <td class="py-3.5 text-stone-800 font-semibold">${detailsText}</td>
-                        <td class="py-3.5 text-stone-500 italic max-w-[150px] sm:max-w-xs truncate" title="${a.notes}">${a.notes || '-'}</td>
-                        <td class="py-3.5 text-right pr-2">
-                            <button onclick="openEditModal('${a.id}')" class="text-stone-300 hover:text-sky-500 transition-colors p-1 mr-1.5" title="Edit Log">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button onclick="deleteActivity('${a.id}')" class="text-stone-300 hover:text-red-500 transition-colors p-1" title="Delete Log">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </td>
-                    </tr>
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        title: `${monthName} ${year}`,
+                        key: groupKey,
+                        items: []
+                    };
+                }
+                groups[groupKey].items.push(a);
+            });
+
+            const sortedKeys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+            let sectionsHtml = '';
+
+            sortedKeys.forEach((key, index) => {
+                const group = groups[key];
+                const isExpanded = index === 0; // Most recent expanded by default
+                const displayClass = isExpanded ? '' : 'hidden';
+                const chevronClass = isExpanded ? 'fa-chevron-up' : 'fa-chevron-down';
+
+                let rowsHtml = '';
+                group.items.forEach(a => {
+                    const date = new Date(a.timestamp);
+                    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+                    let iconClass = '';
+                    let badgeClass = '';
+                    let displayType = a.type;
+                    if (a.type === 'FEEDING') {
+                        iconClass = 'fa-solid fa-bottle-milk';
+                        badgeClass = 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300';
+                    } else if (a.type === 'SLEEP') {
+                        iconClass = 'fa-solid fa-moon';
+                        badgeClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300';
+                    } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
+                        iconClass = 'fa-solid fa-baby-carriage';
+                        badgeClass = 'bg-pink-100 text-pink-800 dark:bg-pink-950/40 dark:text-pink-300';
+                        displayType = 'NAPPY';
+                    } else if (a.type === 'MEDICATION') {
+                        iconClass = 'fa-solid fa-pills';
+                        badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300';
+                        displayType = 'MEDICATION';
+                    }
+
+                    let detailsText = '';
+                    try {
+                        const details = JSON.parse(a.detailsJson);
+                        if (a.type === 'FEEDING') {
+                            detailsText = `${details.method || 'Bottle'}: ${details.amount || 0} ${details.unit || 'ml'} (${details.durationMinutes || 0} mins)`;
+                        } else if (a.type === 'SLEEP') {
+                            detailsText = `Asleep for ${details.durationMinutes || 0} mins`;
+                        } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
+                            detailsText = `Status: ${details.status || 'Wet'}`;
+                        } else if (a.type === 'MEDICATION') {
+                            detailsText = `${details.name || 'Unspecified'} (${details.dosage || 'No dosage'} - ${details.frequency || 'No frequency'})`;
+                        }
+                    } catch(e) {
+                        detailsText = a.detailsJson;
+                    }
+
+                    rowsHtml += `
+                        <tr class="hover:bg-stone-50/50 dark:hover:bg-[#2B2930]/40 transition-colors">
+                            <td class="py-3 px-3 text-[#49454F] dark:text-[#CAC4D0] font-semibold text-xs whitespace-nowrap">${timeStr}</td>
+                            <td class="py-3 px-3">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">
+                                    <i class="${iconClass}"></i> ${displayType}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 text-[#1D1B20] dark:text-[#E6E1E5] font-semibold">${detailsText}</td>
+                            <td class="py-3 px-3 text-[#49454F] dark:text-[#CAC4D0] italic max-w-[150px] sm:max-w-xs truncate" title="${a.notes}">${a.notes || '-'}</td>
+                            <td class="py-3 px-3 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="openEditModal('${a.id}')" class="text-[#79747E] hover:text-[#6750A4] dark:hover:text-[#D0BCFF] transition-colors p-1" title="Edit Log">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="deleteActivity('${a.id}')" class="text-[#79747E] hover:text-red-500 transition-colors p-1" title="Delete Log">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                sectionsHtml += `
+                    <div class="border border-[#E7E0EC] dark:border-[#49454F] rounded-m3-lg overflow-hidden bg-white dark:bg-[#211F26]">
+                        <!-- Accordion Header -->
+                        <div onclick="toggleMonthSection('${group.key}')" class="flex justify-between items-center bg-[#F3EDF7] dark:bg-[#2B2930] px-4 py-3 cursor-pointer select-none hover:bg-[#EADDFF]/50 dark:hover:bg-[#4F378B]/30 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-days text-[#6750A4] dark:text-[#D0BCFF]"></i>
+                                <span class="font-bold text-sm text-[#1D1B20] dark:text-[#E6E1E5]">${group.title}</span>
+                                <span class="text-[10px] bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] px-2 py-0.5 rounded-full font-bold ml-1">${group.items.length} logs</span>
+                            </div>
+                            <i id="chevron-${group.key}" class="fa-solid ${chevronClass} text-xs text-[#49454F] dark:text-[#CAC4D0]"></i>
+                        </div>
+                        
+                        <!-- Accordion Body -->
+                        <div id="section-${group.key}" class="${displayClass} overflow-x-auto border-t border-[#E7E0EC] dark:border-[#49454F] bg-white dark:bg-[#1D1B20]">
+                            <table class="w-full text-left border-collapse min-w-[550px]">
+                                <thead>
+                                    <tr class="border-b border-[#E7E0EC] dark:border-[#49454F] bg-[#F7F2FA] dark:bg-[#211F26] text-[10px] text-[#625B71] dark:text-[#CCC2DC] font-bold uppercase tracking-wider">
+                                        <th class="py-2.5 px-3 w-1/4">Time</th>
+                                        <th class="py-2.5 px-3 w-1/5">Type</th>
+                                        <th class="py-2.5 px-3 w-2/5">Activity Specifics</th>
+                                        <th class="py-2.5 px-3 w-1/5">Notes</th>
+                                        <th class="py-2.5 px-3 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-xs divide-y divide-[#E7E0EC] dark:divide-[#49454F]">
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 `;
             });
 
-            tbody.innerHTML = rowsHtml;
+            container.innerHTML = sectionsHtml;
             updateStats(feedCount, (sleepMinutes / 60).toFixed(1), nappyCount, medsCount);
             renderCharts(activities);
         }

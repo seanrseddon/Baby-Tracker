@@ -340,6 +340,16 @@ app.delete('/api/activities/:id', (req, res) => {
     );
 });
 
+// REST API - Delete ALL activities (wipe data)
+app.delete('/api/activities', (req, res) => {
+    db.run("DELETE FROM activities", [], function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ success: true, message: 'All activities erased successfully', count: this.changes });
+    });
+});
+
 // Helper function to call Gemini API
 function callGemini(apiKey, prompt) {
     return new Promise((resolve, reject) => {

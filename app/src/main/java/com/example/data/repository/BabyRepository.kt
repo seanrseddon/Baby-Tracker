@@ -25,6 +25,19 @@ class BabyRepository(private val dao: BabyActivityDao) {
         dao.softDeleteActivity(id, System.currentTimeMillis())
     }
 
+    suspend fun deleteAllLocalActivities() {
+        dao.deleteAllActivities()
+    }
+
+    suspend fun eraseAllServerActivities(serverUrl: String) {
+        if (serverUrl.isBlank()) return
+        val apiService = SyncClient.getApiService(serverUrl)
+        val response = apiService.eraseAllServerActivities()
+        if (!response.isSuccessful) {
+            throw Exception(response.errorBody()?.string() ?: "Failed to delete server activities")
+        }
+    }
+
     /**
      * Performs a bidirectional sync with the self-hosted Unraid/Docker backend.
      * Returns the new server sync time if successful, or throws an exception.

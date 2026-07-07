@@ -202,6 +202,29 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun eraseAllData(onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 1. Delete all server data if server URL is configured
+                val url = _serverUrl.value
+                if (url.isNotBlank()) {
+                    repository.eraseAllServerActivities(url)
+                }
+                
+                // 2. Delete all local activities
+                repository.deleteAllLocalActivities()
+                
+                // 3. Reset last sync time so synchronization can start clean on new data
+                clearSyncTime()
+                
+                onComplete(true, "All data successfully erased from app and server.")
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Failed to erase data", e)
+                onComplete(false, "Failed to delete: ${e.localizedMessage ?: "Unknown error"}")
+            }
+        }
+    }
+
     fun updateBabyDob(dob: Long) {
         _babyDob.value = dob
         prefs.edit().putLong("baby_dob", dob).apply()
