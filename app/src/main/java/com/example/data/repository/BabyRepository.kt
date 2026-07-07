@@ -17,6 +17,10 @@ class BabyRepository(private val dao: BabyActivityDao) {
         dao.insertActivity(activity)
     }
 
+    suspend fun insertActivities(activities: List<BabyActivity>) {
+        dao.insertActivities(activities)
+    }
+
     suspend fun softDeleteActivity(id: String) {
         dao.softDeleteActivity(id, System.currentTimeMillis())
     }

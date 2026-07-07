@@ -315,6 +315,235 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun importCsv(csvText: String, onComplete: (Boolean, Int, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val lines = csvText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                if (lines.size < 2) {
+                    onComplete(false, 0, "Empty or invalid CSV file.")
+                    return@launch
+                }
+
+                // Helper to clean quotes
+                fun cleanVal(v: String): String {
+                    return v.trim().removeSurrounding("\"").trim()
+                }
+
+                // Parse the header
+                // Keep track of quotes when splitting by comma
+                fun parseCsvLine(line: String): List<String> {
+                    val result = mutableListOf<String>()
+                    val currentField = StringBuilder()
+                    var insideQuote = false
+                    var j = 0
+                    while (j < line.length) {
+                        val char = line[j]
+                        if (char == '"') {
+                            if (insideQuote && j + 1 < line.length && line[j + 1] == '"') {
+                                currentField.append('"')
+                                j++
+                            } else {
+                                insideQuote = !insideQuote
+                            }
+                        } else if (char == ',' && !insideQuote) {
+                            result.add(currentField.toString())
+                            currentField.clear()
+                        } else {
+                            currentField.append(char)
+                        }
+                        j++
+                    }
+                    result.add(currentField.toString())
+                    return result
+                }
+
+                val headers = parseCsvLine(lines[0]).map { cleanVal(it) }
+                val babyNameValue = _babyName.value.ifBlank { "Baby" }
+                val importedActivities = mutableListOf<BabyActivity>()
+
+                for (i in 1 until lines.size) {
+                    val line = lines[i]
+                    val row = parseCsvLine(line).map { cleanVal(it) }
+                    if (row.size < headers.size) continue
+
+                    // Build raw row key-value map
+                    val rawRow = mutableMapOf<String, String>()
+                    headers.forEachIndexed { idx, h ->
+                        if (idx < row.size) {
+                            rawRow[h] = row[idx]
+                        }
+                    }
+
+                    // Search for headers case-insensitively
+                    var rawType = ""
+                    var rawStart = ""
+                    var rawEnd = ""
+                    var rawDuration = ""
+                    var rawNotes = ""
+                    var rawAmount = ""
+                    var rawUnit = ""
+                    var rawFeedType = ""
+                    var rawNappyStatus = ""
+                    var rawMedName = ""
+                    var rawMedDosage = ""
+
+                    rawRow.forEach { (key, valStr) ->
+                        val lowerKey = key.lowercase()
+                        if (lowerKey == "type" || lowerKey == "category" || lowerKey == "activity") {
+                            rawType = valStr
+                        } else if (lowerKey.contains("start time") || lowerKey == "start" || lowerKey == "timestamp" || lowerKey == "date" || lowerKey == "time") {
+                            if (rawStart.isEmpty()) rawStart = valStr
+                        } else if (lowerKey.contains("end time") || lowerKey == "end") {
+                            rawEnd = valStr
+                        } else if (lowerKey.contains("duration")) {
+                            rawDuration = valStr
+                        } else if (lowerKey.contains("notes") || lowerKey.contains("note") || lowerKey.contains("comment")) {
+                            rawNotes = valStr
+                        } else if (lowerKey.contains("amount") || lowerKey.contains("quantity") || lowerKey.contains("volume")) {
+                            rawAmount = valStr
+                        } else if (lowerKey.contains("unit")) {
+                            rawUnit = valStr
+                        } else if (lowerKey.contains("feed type") || lowerKey.contains("method") || lowerKey.contains("subtype")) {
+                            rawFeedType = valStr
+                        } else if (lowerKey.contains("nappy") || lowerKey.contains("diaper") || lowerKey.contains("status") || lowerKey.contains("condition")) {
+                            rawNappyStatus = valStr
+                        } else if (lowerKey.contains("medicine") || lowerKey.contains("medication") || lowerKey.contains("med name") || lowerKey == "name") {
+                            rawMedName = valStr
+                        } else if (lowerKey.contains("dosage") || lowerKey.contains("dose")) {
+                            rawMedDosage = valStr
+                        }
+                    }
+
+                    // Map Activity Type
+                    val typeLower = rawType.lowercase()
+                    var finalType = ""
+                    if (typeLower.contains("sleep") || typeLower.contains("nap")) {
+                        finalType = "SLEEP"
+                    } else if (typeLower.contains("feed") || typeLower.contains("bottle") || typeLower.contains("breast") || typeLower.contains("solid") || typeLower.contains("nursing")) {
+                        finalType = "FEEDING"
+                    } else if (typeLower.contains("diaper") || typeLower.contains("nappy") || typeLower.contains("change") || typeLower.contains("pee") || typeLower.contains("poo")) {
+                        finalType = "DIAPER"
+                    } else if (typeLower.contains("med") || typeLower.contains("pills") || typeLower.contains("dose") || typeLower.contains("vacc") || typeLower.contains("temp")) {
+                        finalType = "MEDICATION"
+                    } else {
+                        if (rawFeedType.isNotEmpty()) finalType = "FEEDING"
+                        else if (rawNappyStatus.isNotEmpty()) finalType = "DIAPER"
+                        else if (rawMedName.isNotEmpty()) finalType = "MEDICATION"
+                        else if (rawEnd.isNotEmpty() || rawDuration.isNotEmpty()) finalType = "SLEEP"
+                        else continue // skip unrecognized row
+                    }
+
+                    // Parse Timestamp
+                    var finalTimestamp = System.currentTimeMillis()
+                    if (rawStart.isNotEmpty()) {
+                        val parsed = parseDateTime(rawStart)
+                        if (parsed != null) {
+                            finalTimestamp = parsed
+                        }
+                    }
+
+                    // Parse detailsJson
+                    val detailsObj = JSONObject()
+                    if (finalType == "SLEEP") {
+                        var durationMin = 60
+                        if (rawDuration.isNotEmpty()) {
+                            if (rawDuration.contains(":")) {
+                                val parts = rawDuration.split(":")
+                                val hrs = parts.getOrNull(0)?.toIntOrNull() ?: 0
+                                val mins = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                                durationMin = hrs * 60 + mins
+                            } else {
+                                durationMin = rawDuration.toIntOrNull() ?: 60
+                            }
+                        } else if (rawEnd.isNotEmpty() && rawStart.isNotEmpty()) {
+                            val startMs = parseDateTime(rawStart)
+                            val endMs = parseDateTime(rawEnd)
+                            if (startMs != null && endMs != null) {
+                                durationMin = ((endMs - startMs) / 60000).toInt()
+                            }
+                        }
+                        detailsObj.put("durationMinutes", if (durationMin > 0) durationMin else 60)
+                    } else if (finalType == "FEEDING") {
+                        var method = "Bottle"
+                        val feedLower = (rawFeedType + rawType).lowercase()
+                        if (feedLower.contains("breast") || feedLower.contains("nursing") || feedLower.contains("left") || feedLower.contains("right")) {
+                            method = "Breast"
+                        } else if (feedLower.contains("solid") || feedLower.contains("food") || feedLower.contains("puree")) {
+                            method = "Solid"
+                        }
+                        val amount = rawAmount.toDoubleOrNull() ?: 120.0
+                        var unit = rawUnit.ifEmpty { "ml" }
+                        if (rawUnit.isEmpty() && amount < 15.0) {
+                            unit = "oz"
+                        }
+                        detailsObj.put("method", method)
+                        detailsObj.put("amount", amount)
+                        detailsObj.put("unit", unit)
+                        detailsObj.put("durationMinutes", rawDuration.toIntOrNull() ?: 15)
+                    } else if (finalType == "DIAPER") {
+                        var status = "Wet"
+                        val napLower = (rawNappyStatus + rawNotes).lowercase()
+                        val isWet = napLower.contains("wet") || napLower.contains("pee") || napLower.contains("urine")
+                        val isDirty = napLower.contains("dirty") || napLower.contains("poo") || napLower.contains("stool") || napLower.contains("bowel")
+                        if (isWet && isDirty) status = "Both"
+                        else if (isDirty) status = "Dirty"
+                        else if (napLower.contains("dry")) status = "Dry"
+                        detailsObj.put("status", status)
+                    } else if (finalType == "MEDICATION") {
+                        detailsObj.put("name", rawMedName.ifEmpty { "Unspecified Medication" })
+                        detailsObj.put("dosage", rawMedDosage.ifEmpty { "2.5ml" })
+                        detailsObj.put("frequency", "Once")
+                    }
+
+                    val act = BabyActivity(
+                        id = rawRow["id"] ?: UUID.randomUUID().toString(),
+                        type = finalType,
+                        babyName = rawRow["babyName"] ?: babyNameValue,
+                        timestamp = finalTimestamp,
+                        detailsJson = detailsObj.toString(),
+                        notes = rawNotes.ifEmpty { rawRow["notes"] ?: "" },
+                        updatedAt = System.currentTimeMillis(),
+                        isDeleted = false
+                    )
+                    importedActivities.add(act)
+                }
+
+                if (importedActivities.isEmpty()) {
+                    onComplete(false, 0, "No valid activities found to import. Check your CSV header formats.")
+                    return@launch
+                }
+
+                repository.insertActivities(importedActivities)
+                onComplete(true, importedActivities.size, "Imported ${importedActivities.size} records successfully!")
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "CSV Import failed", e)
+                onComplete(false, 0, "Error importing: ${e.localizedMessage ?: "Unknown error"}")
+            }
+        }
+    }
+
+    private fun parseDateTime(dateTimeStr: String): Long? {
+        val formats = listOf(
+            "M/d/yy, h:mm a",
+            "M/d/yyyy, h:mm a",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "M/d/yy h:mm a",
+            "M/d/yyyy h:mm a",
+            "dd/MM/yyyy HH:mm",
+            "dd/MM/yyyy h:mm a",
+            "MM/dd/yyyy HH:mm"
+        )
+        for (f in formats) {
+            try {
+                val sdf = SimpleDateFormat(f, Locale.US)
+                val date = sdf.parse(dateTimeStr.trim())
+                if (date != null) return date.time
+            } catch (e: Exception) {}
+        }
+        return dateTimeStr.toLongOrNull()
+    }
+
     // Factory for ViewModel
     companion object {
         fun provideFactory(application: Application): ViewModelProvider.Factory = object : ViewModelProvider.Factory {

@@ -22,6 +22,12 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.BabyViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +47,27 @@ fun SettingsScreen(
     var tempBabyName by remember { mutableStateOf(babyName) }
     var tempBabyDob by remember(babyDob) { mutableStateOf(babyDob) }
     var tempServerUrl by remember { mutableStateOf(serverUrl) }
+
+    var pastedCsv by remember { mutableStateOf("") }
+    var showPasteArea by remember { mutableStateOf(false) }
+
+    val fileContext = LocalContext.current
+    val csvPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                val inputStream = fileContext.contentResolver.openInputStream(uri)
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val content = reader.use { it.readText() }
+                viewModel.importCsv(content) { success, count, msg ->
+                    Toast.makeText(fileContext, msg, Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(fileContext, "Failed to read CSV: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val calendar = Calendar.getInstance()
@@ -230,6 +257,94 @@ fun SettingsScreen(
                             onCheckedChange = { viewModel.updateDarkTheme(it) },
                             modifier = Modifier.testTag("dark_theme_switch")
                         )
+                    }
+                }
+            }
+
+            // Huckleberry CSV Import Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Huckleberry Data Import",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Text(
+                        text = "Import historic baby activity logs from your Huckleberry app export. Supports automatic mapping of sleeps, feeds, nappy status, and medications.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { csvPickerLauncher.launch("*/*") },
+                            modifier = Modifier.weight(1.5f).testTag("select_csv_file_button")
+                        ) {
+                            Icon(imageVector = Icons.Default.UploadFile, contentDescription = null)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Select CSV File")
+                        }
+
+                        OutlinedButton(
+                            onClick = { showPasteArea = !showPasteArea },
+                            modifier = Modifier.weight(1.5f).testTag("toggle_paste_csv_button")
+                        ) {
+                            Icon(
+                                imageVector = if (showPasteArea) Icons.Default.Close else Icons.Default.ContentPaste,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (showPasteArea) "Hide Paste" else "Paste CSV Text")
+                        }
+                    }
+
+                    if (showPasteArea) {
+                        OutlinedTextField(
+                            value = pastedCsv,
+                            onValueChange = { pastedCsv = it },
+                            label = { Text("Paste raw CSV content here") },
+                            placeholder = { Text("Start Time,End Time,Type,Notes...\n2022-07-15 21:20:00,2022-07-15 22:30:00,Sleep,Quiet nap") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .testTag("pasted_csv_input"),
+                            shape = RoundedCornerShape(12.dp),
+                            maxLines = 100
+                        )
+
+                        Button(
+                            onClick = {
+                                if (pastedCsv.isBlank()) {
+                                    Toast.makeText(context, "Please paste some CSV text first", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    viewModel.importCsv(pastedCsv) { success, count, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                        if (success) {
+                                            pastedCsv = ""
+                                            showPasteArea = false
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .testTag("import_pasted_csv_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Import Pasted Data")
+                        }
                     }
                 }
             }

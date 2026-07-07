@@ -1318,7 +1318,10 @@
                     return;
                 }
 
-                const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+                // Helper to clean quotes
+                const cleanVal = (v) => v ? v.trim().replace(/^"|"$/g, '').trim() : "";
+
+                const headers = lines[0].split(",").map(h => cleanVal(h));
                 const importedActivities = [];
 
                 for (let i = 1; i < lines.length; i++) {
@@ -1348,28 +1351,148 @@
 
                     if (row.length < headers.length) continue;
 
-                    const act = {};
-                    headers.forEach((header, index) => {
-                        let val = row[index];
-                        if (val !== undefined) {
-                            val = val.trim();
-                            if (val.startsWith('"') && val.endsWith('"')) {
-                                val = val.substring(1, val.length - 1);
-                            }
-                        }
-                        act[header] = val;
+                    // Build raw row key-value map
+                    const rawRow = {};
+                    headers.forEach((h, idx) => {
+                        rawRow[h] = cleanVal(row[idx]);
                     });
 
-                    if (!act.id) act.id = generateUUID();
-                    if (!act.type) continue;
-                    if (!act.babyName) act.babyName = profileName;
-                    if (!act.timestamp) act.timestamp = Date.now().toString();
-                    if (!act.detailsJson) {
-                        if (act.type === 'FEEDING') act.detailsJson = JSON.stringify({ method: 'Bottle', amount: 120, unit: 'ml', durationMinutes: 15 });
-                        else if (act.type === 'SLEEP') act.detailsJson = JSON.stringify({ durationMinutes: 60 });
-                        else if (act.type === 'MEDICATION') act.detailsJson = JSON.stringify({ name: 'Calpol', dosage: '2.5ml', frequency: 'Once' });
-                        else act.detailsJson = JSON.stringify({ status: 'Wet' });
+                    // Search for headers case-insensitively
+                    let rawType = "";
+                    let rawStart = "";
+                    let rawEnd = "";
+                    let rawDuration = "";
+                    let rawNotes = "";
+                    let rawAmount = "";
+                    let rawUnit = "";
+                    let rawFeedType = "";
+                    let rawNappyStatus = "";
+                    let rawMedName = "";
+                    let rawMedDosage = "";
+
+                    Object.keys(rawRow).forEach(key => {
+                        const lowerKey = key.toLowerCase();
+                        const val = rawRow[key];
+
+                        if (lowerKey === "type" || lowerKey === "category" || lowerKey === "activity") {
+                            rawType = val;
+                        } else if (lowerKey.includes("start time") || lowerKey === "start" || lowerKey === "timestamp" || lowerKey === "date" || lowerKey === "time") {
+                            if (!rawStart) rawStart = val; // prioritize first found match
+                        } else if (lowerKey.includes("end time") || lowerKey === "end") {
+                            rawEnd = val;
+                        } else if (lowerKey.includes("duration")) {
+                            rawDuration = val;
+                        } else if (lowerKey.includes("notes") || lowerKey.includes("note") || lowerKey.includes("comment")) {
+                            rawNotes = val;
+                        } else if (lowerKey.includes("amount") || lowerKey.includes("quantity") || lowerKey.includes("volume")) {
+                            rawAmount = val;
+                        } else if (lowerKey.includes("unit")) {
+                            rawUnit = val;
+                        } else if (lowerKey.includes("feed type") || lowerKey.includes("method") || lowerKey.includes("subtype")) {
+                            rawFeedType = val;
+                        } else if (lowerKey.includes("nappy") || lowerKey.includes("diaper") || lowerKey.includes("status") || lowerKey.includes("condition")) {
+                            rawNappyStatus = val;
+                        } else if (lowerKey.includes("medicine") || lowerKey.includes("medication") || lowerKey.includes("med name") || lowerKey === "name") {
+                            rawMedName = val;
+                        } else if (lowerKey.includes("dosage") || lowerKey.includes("dose")) {
+                            rawMedDosage = val;
+                        }
+                    });
+
+                    // Map Activity Type
+                    let finalType = "";
+                    const typeLower = rawType.toLowerCase();
+                    if (typeLower.includes("sleep") || typeLower.includes("nap")) {
+                        finalType = "SLEEP";
+                    } else if (typeLower.includes("feed") || typeLower.includes("bottle") || typeLower.includes("breast") || typeLower.includes("solid") || typeLower.includes("nursing")) {
+                        finalType = "FEEDING";
+                    } else if (typeLower.includes("diaper") || typeLower.includes("nappy") || typeLower.includes("change") || typeLower.includes("pee") || typeLower.includes("poo")) {
+                        finalType = "DIAPER";
+                    } else if (typeLower.includes("med") || typeLower.includes("pills") || typeLower.includes("dose") || typeLower.includes("vacc") || typeLower.includes("temp")) {
+                        finalType = "MEDICATION";
+                    } else {
+                        // Fallback check on some other fields if type is empty
+                        if (rawFeedType) finalType = "FEEDING";
+                        else if (rawNappyStatus) finalType = "DIAPER";
+                        else if (rawMedName) finalType = "MEDICATION";
+                        else if (rawEnd || rawDuration) finalType = "SLEEP";
+                        else continue; // skip unrecognized row
                     }
+
+                    // Parse Timestamp
+                    let finalTimestamp = Date.now();
+                    if (rawStart) {
+                        const parsed = Date.parse(rawStart);
+                        if (!isNaN(parsed)) {
+                            finalTimestamp = parsed;
+                        }
+                    }
+
+                    // Parse detailsJson
+                    let detailsObj = {};
+                    if (finalType === "SLEEP") {
+                        let durationMin = 60;
+                        if (rawDuration) {
+                            if (rawDuration.includes(":")) {
+                                const parts = rawDuration.split(":");
+                                durationMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+                            } else {
+                                durationMin = parseInt(rawDuration, 10) || 60;
+                            }
+                        } else if (rawEnd && rawStart) {
+                            const startMs = Date.parse(rawStart);
+                            const endMs = Date.parse(rawEnd);
+                            if (!isNaN(startMs) && !isNaN(endMs)) {
+                                durationMin = Math.round((endMs - startMs) / 60000);
+                            }
+                        }
+                        detailsObj = { durationMinutes: durationMin || 60 };
+                    } else if (finalType === "FEEDING") {
+                        let method = "Bottle";
+                        const feedLower = (rawFeedType || rawType || "").toLowerCase();
+                        if (feedLower.includes("breast") || feedLower.includes("nursing") || feedLower.includes("left") || feedLower.includes("right")) {
+                            method = "Breast";
+                        } else if (feedLower.includes("solid") || feedLower.includes("food") || feedLower.includes("puree")) {
+                            method = "Solid";
+                        }
+                        let amount = parseFloat(rawAmount) || 120;
+                        let unit = rawUnit || "ml";
+                        if (!rawUnit && amount < 15) {
+                            unit = "oz"; // heuristic
+                        }
+                        detailsObj = {
+                            method: method,
+                            amount: amount,
+                            unit: unit,
+                            durationMinutes: parseInt(rawDuration, 10) || 15
+                        };
+                    } else if (finalType === "DIAPER") {
+                        let status = "Wet";
+                        const napLower = (rawNappyStatus || rawNotes || "").toLowerCase();
+                        const isWet = napLower.includes("wet") || napLower.includes("pee") || napLower.includes("urine");
+                        const isDirty = napLower.includes("dirty") || napLower.includes("poo") || napLower.includes("stool") || napLower.includes("bowel");
+                        if (isWet && isDirty) status = "Both";
+                        else if (isDirty) status = "Dirty";
+                        else if (napLower.includes("dry")) status = "Dry";
+                        detailsObj = { status: status };
+                    } else if (finalType === "MEDICATION") {
+                        detailsObj = {
+                            name: rawMedName || "Unspecified Medication",
+                            dosage: rawMedDosage || "2.5ml",
+                            frequency: "Once"
+                        };
+                    }
+
+                    const act = {
+                        id: rawRow.id || generateUUID(),
+                        type: finalType,
+                        babyName: rawRow.babyName || profileName || "Baby",
+                        timestamp: finalTimestamp.toString(),
+                        detailsJson: JSON.stringify(detailsObj),
+                        notes: rawNotes || rawRow.notes || "",
+                        updatedAt: Date.now().toString(),
+                        isDeleted: "0"
+                    };
 
                     importedActivities.push(act);
                 }
