@@ -8,9 +8,10 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS and JSON parsing
+// Enable CORS and JSON parsing with custom limit for large CSV imports
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Ensure data directory exists for persistent SQLite database on Docker/Unraid
 const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
