@@ -81,10 +81,42 @@ app.post('/api/activities/sync', (req, joinRes) => {
     const clientLogs = clientActivities || [];
     const lastSync = lastSyncTime || 0;
 
-    // We process client-side logs in a transaction or sequential operations
+    if (clientLogs.length === 0) {
+        // Simple case: fetch updates only, no client logs to process
+        db.all(
+            "SELECT * FROM activities WHERE updatedAt > ?",
+            [lastSync],
+            (err, rows) => {
+                if (err) {
+                    console.error('Sync query error:', err.message);
+                    return joinRes.status(500).json({ error: 'Database sync error' });
+                }
+
+                const serverUpdates = rows.map(r => ({
+                    id: r.id,
+                    type: r.type,
+                    babyName: r.babyName,
+                    timestamp: r.timestamp,
+                    detailsJson: r.detailsJson,
+                    notes: r.notes,
+                    updatedAt: r.updatedAt,
+                    isDeleted: r.isDeleted === 1
+                }));
+
+                const newSyncTime = Date.now();
+                return joinRes.json({
+                    serverSyncTime: newSyncTime,
+                    updates: serverUpdates
+                });
+            }
+        );
+        return;
+    }
+
+    // Wrap in SQLite transaction for high performance (processes thousands of logs in milliseconds)
     db.serialize(() => {
-        // Prepare select to compare updatedAt
-        const checkStmt = db.prepare("SELECT updatedAt, isDeleted FROM activities WHERE id = ?");
+        db.run("BEGIN TRANSACTION");
+
         const insertStmt = db.prepare(`
             INSERT INTO activities (id, type, babyName, timestamp, detailsJson, notes, updatedAt, isDeleted)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -99,7 +131,10 @@ app.post('/api/activities/sync', (req, joinRes) => {
             WHERE excluded.updatedAt > activities.updatedAt
         `);
 
-        clientLogs.forEach(log => {
+        let hasError = false;
+        let errMsg = '';
+
+        for (const log of clientLogs) {
             insertStmt.run(
                 log.id,
                 log.type,
@@ -108,42 +143,63 @@ app.post('/api/activities/sync', (req, joinRes) => {
                 log.detailsJson,
                 log.notes || '',
                 log.updatedAt,
-                log.isDeleted ? 1 : 0
+                log.isDeleted ? 1 : 0,
+                (err) => {
+                    if (err) {
+                        hasError = true;
+                        errMsg = err.message;
+                    }
+                }
             );
-        });
+            if (hasError) break;
+        }
 
-        insertStmt.finalize();
-        checkStmt.finalize();
+        insertStmt.finalize((err) => {
+            if (err || hasError) {
+                db.run("ROLLBACK", () => {
+                    console.error('Sync transaction rollback:', err?.message || errMsg);
+                    return joinRes.status(500).json({ error: 'Database sync transaction failed' });
+                });
+                return;
+            }
 
-        // Query all activities updated after lastSyncTime to send back to client
-        db.all(
-            "SELECT * FROM activities WHERE updatedAt > ?",
-            [lastSync],
-            (err, rows) => {
-                if (err) {
-                    console.error('Sync query error:', err.message);
-                    return joinRes.status(500).json({ error: 'Database sync error' });
+            db.run("COMMIT", (commitErr) => {
+                if (commitErr) {
+                    db.run("ROLLBACK");
+                    console.error('Sync transaction commit failed:', commitErr.message);
+                    return joinRes.status(500).json({ error: 'Database sync commit failed' });
                 }
 
-                // Map sqlite isDeleted (0/1) back to boolean
-                const serverUpdates = rows.map(r => ({
-                    id: r.id,
-                    type: r.type,
-                    babyName: r.babyName,
-                    timestamp: r.timestamp,
-                    detailsJson: r.detailsJson,
-                    notes: r.notes,
-                    updatedAt: r.updatedAt,
-                    isDeleted: r.isDeleted === 1
-                }));
+                // Query all activities updated after lastSyncTime to send back to client
+                db.all(
+                    "SELECT * FROM activities WHERE updatedAt > ?",
+                    [lastSync],
+                    (err, rows) => {
+                        if (err) {
+                            console.error('Sync query error:', err.message);
+                            return joinRes.status(500).json({ error: 'Database sync query error' });
+                        }
 
-                const newSyncTime = Date.now();
-                joinRes.json({
-                    serverSyncTime: newSyncTime,
-                    updates: serverUpdates
-                });
-            }
-        );
+                        const serverUpdates = rows.map(r => ({
+                            id: r.id,
+                            type: r.type,
+                            babyName: r.babyName,
+                            timestamp: r.timestamp,
+                            detailsJson: r.detailsJson,
+                            notes: r.notes,
+                            updatedAt: r.updatedAt,
+                            isDeleted: r.isDeleted === 1
+                        }));
+
+                        const newSyncTime = Date.now();
+                        joinRes.json({
+                            serverSyncTime: newSyncTime,
+                            updates: serverUpdates
+                        });
+                    }
+                );
+            });
+        });
     });
 });
 
