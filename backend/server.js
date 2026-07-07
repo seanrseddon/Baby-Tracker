@@ -188,6 +188,64 @@ app.post('/api/activities', (req, res) => {
     );
 });
 
+// REST API - Create bulk activities (useful for importing CSV)
+app.post('/api/activities/bulk', (req, res) => {
+    const { activities } = req.body;
+    if (!Array.isArray(activities)) {
+        return res.status(400).json({ error: 'Expected activities array' });
+    }
+
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+        const stmt = db.prepare(`
+            INSERT INTO activities (id, type, babyName, timestamp, detailsJson, notes, updatedAt, isDeleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+               type = excluded.type,
+               babyName = excluded.babyName,
+               timestamp = excluded.timestamp,
+               detailsJson = excluded.detailsJson,
+               notes = excluded.notes,
+               updatedAt = excluded.updatedAt,
+               isDeleted = excluded.isDeleted
+        `);
+
+        let hasError = false;
+        let errMsg = '';
+
+        activities.forEach(act => {
+            const isDel = act.isDeleted === true || act.isDeleted === 1 || act.isDeleted === 'true' ? 1 : 0;
+            stmt.run(
+                [
+                    act.id,
+                    act.type,
+                    act.babyName,
+                    parseInt(act.timestamp),
+                    act.detailsJson,
+                    act.notes || '',
+                    parseInt(act.updatedAt || Date.now()),
+                    isDel
+                ],
+                (err) => {
+                    if (err) {
+                        hasError = true;
+                        errMsg = err.message;
+                    }
+                }
+            );
+        });
+
+        stmt.finalize((err) => {
+            if (err || hasError) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ error: err?.message || errMsg || 'Failed to bulk insert' });
+            }
+            db.run("COMMIT");
+            res.json({ success: true, count: activities.length });
+        });
+    });
+});
+
 // REST API - Update single activity via PUT
 app.put('/api/activities/:id', (req, res) => {
     const { id } = req.params;
@@ -326,9 +384,9 @@ app.post('/api/profile', (req, res) => {
 
 // REST API - POST Sleep Analysis via Gemini
 app.post('/api/analyze-sleep', (req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
-        return res.status(400).json({ error: 'Gemini API key is not configured in the server secrets.' });
+    const apiKey = req.headers['x-gemini-api-key'] || process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'MY_GEMINI_API_KEY' || apiKey.trim() === '') {
+        return res.status(400).json({ error: 'Gemini API key is not configured. Please enter your Gemini API key in settings or set GEMINI_API_KEY on the server.' });
     }
 
     db.all("SELECT * FROM profile", [], (err, profileRows) => {

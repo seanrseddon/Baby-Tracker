@@ -68,7 +68,7 @@ fun DashboardScreen(
     val todayActivities = activities.filter { it.timestamp >= todayMidnight }
 
     val feedingCount = todayActivities.count { it.type == "FEEDING" }
-    val diaperCount = todayActivities.count { it.type == "DIAPER" }
+    val diaperCount = todayActivities.count { it.type == "DIAPER" || it.type == "NAPPY" }
     
     val totalSleepMinutes = todayActivities.filter { it.type == "SLEEP" }.sumOf {
         try {
@@ -726,7 +726,7 @@ fun ActivityLogCard(
     val categoryColor = when (activity.type) {
         "FEEDING" -> MaterialTheme.colorScheme.secondary
         "SLEEP" -> MaterialTheme.colorScheme.primary
-        "DIAPER" -> MaterialTheme.colorScheme.tertiary
+        "DIAPER", "NAPPY" -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.outline
     }
     var detailsText = ""
@@ -759,7 +759,7 @@ fun ActivityLogCard(
                 detailsText = "Sleeping activity"
             }
         }
-        "DIAPER" -> {
+        "DIAPER", "NAPPY" -> {
             icon = Icons.Default.Opacity
             try {
                 val details = JSONObject(activity.detailsJson)
@@ -1188,8 +1188,8 @@ fun EditActivityDialog(
     // SLEEP states
     var sleepDuration by remember { mutableStateOf(initialDetails.optInt("durationMinutes", 60).toString()) }
 
-    // DIAPER states
-    var diaperStatus by remember { mutableStateOf(initialDetails.optString("status", "Wet")) }
+    // NAPPY states
+    var nappyStatus by remember { mutableStateOf(initialDetails.optString("status", "Wet")) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val customCalendar = remember(timestamp) {
@@ -1354,19 +1354,19 @@ fun EditActivityDialog(
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
-                    "DIAPER" -> {
+                    "DIAPER", "NAPPY" -> {
                         Column {
                             Text("Status", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                             Spacer(modifier = Modifier.height(6.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf("Wet", "Dirty", "Both", "Dry").forEach { status ->
-                                    val isSel = diaperStatus == status
+                                    val isSel = nappyStatus == status
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(if (isSel) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow)
-                                            .clickable { diaperStatus = status }
+                                            .clickable { nappyStatus = status }
                                             .padding(vertical = 8.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -1407,8 +1407,8 @@ fun EditActivityDialog(
                             "SLEEP" -> {
                                 finalDetails.put("durationMinutes", sleepDuration.toIntOrNull() ?: 60)
                             }
-                            "DIAPER" -> {
-                                finalDetails.put("status", diaperStatus)
+                            "DIAPER", "NAPPY" -> {
+                                finalDetails.put("status", nappyStatus)
                             }
                         }
                     } catch (e: Exception) {}

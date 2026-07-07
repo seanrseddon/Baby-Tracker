@@ -7,7 +7,7 @@ import java.util.UUID
 @Entity(tableName = "baby_activities")
 data class BabyActivity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val type: String, // "FEEDING", "SLEEP", "DIAPER"
+    val type: String, // "FEEDING", "SLEEP", "NAPPY"
     val babyName: String = "Baby",
     val timestamp: Long = System.currentTimeMillis(),
     val detailsJson: String, // Holds JSON representation of activity-specific details

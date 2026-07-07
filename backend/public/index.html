@@ -191,6 +191,39 @@
                 </div>
             </div>
 
+            <!-- Settings & Utilities Card -->
+            <div class="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 p-5 shadow-sm space-y-4">
+                <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider">Settings & Utilities</h3>
+                
+                <!-- Gemini Key Config -->
+                <div class="space-y-1.5">
+                    <label class="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1">Gemini API Key</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="settings-gemini-key" placeholder="Enter custom API Key" class="flex-1 px-3 py-2 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-xs">
+                        <button onclick="saveGeminiKey()" class="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-key"></i> Save
+                        </button>
+                    </div>
+                    <p id="gemini-key-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold"></p>
+                </div>
+
+                <hr class="border-stone-100 dark:border-stone-800">
+
+                <!-- CSV Import/Export -->
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1">CSV Data Actions</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="exportToCSV()" class="py-2.5 px-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-file-export text-sky-500"></i> Export CSV
+                        </button>
+                        <button onclick="triggerCSVImport()" class="py-2.5 px-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-file-import text-pink-500"></i> Import CSV
+                        </button>
+                    </div>
+                    <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
+                </div>
+            </div>
+
             <!-- Stats & Quick Info -->
             <div class="bg-gradient-to-br from-sky-400 to-sky-500 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
                 <div class="absolute -right-8 -bottom-8 text-white/10 text-9xl">
@@ -232,7 +265,7 @@
                         <i class="fa-solid fa-moon text-lg"></i>
                         <span class="text-xs">Sleep</span>
                     </button>
-                    <button id="btn-diaper" onclick="selectType('DIAPER')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
+                    <button id="btn-nappy" onclick="selectType('NAPPY')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
                         <i class="fa-solid fa-baby-carriage text-lg"></i>
                         <span class="text-xs">Nappy</span>
                     </button>
@@ -285,11 +318,11 @@
                         </div>
                     </div>
 
-                    <!-- Dynamic Fields: Nappy (Diaper) -->
-                    <div id="fields-diaper" class="space-y-3 hidden">
+                    <!-- Dynamic Fields: Nappy -->
+                    <div id="fields-nappy" class="space-y-3 hidden">
                         <div>
                             <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Nappy Status</label>
-                            <select id="diaper-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <select id="nappy-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
                                 <option value="Wet">Wet</option>
                                 <option value="Dirty">Dirty (Poop)</option>
                                 <option value="Both">Wet & Dirty</option>
@@ -337,17 +370,26 @@
                             <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-bold text-stone-800 leading-tight">Gemini Sleep Coach</h3>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-bold text-stone-800 dark:text-white leading-tight">Gemini Sleep Coach</h3>
+                                <button onclick="toggleMinimizeGemini()" class="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 p-1" title="Minimize / Expand">
+                                    <i id="minimize-gemini-icon" class="fa-solid fa-chevron-up"></i>
+                                </button>
+                            </div>
                             <p class="text-xs text-stone-400 font-semibold uppercase tracking-wider">Smart Nap Predictions & Insights</p>
                         </div>
                     </div>
-                    <button onclick="analyzeSleep()" id="btn-analyze" class="w-full sm:w-auto px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-brain" id="brain-icon"></i> <span id="analyze-text">Analyze Sleep & Predict Naps</span>
-                    </button>
+                    <div id="gemini-coach-header-action" class="w-full sm:w-auto">
+                        <button onclick="analyzeSleep()" id="btn-analyze" class="w-full sm:w-auto px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-brain" id="brain-icon"></i> <span id="analyze-text">Analyze Sleep & Predict Naps</span>
+                        </button>
+                    </div>
                 </div>
                 
-                <div id="ai-analysis-result" class="bg-stone-50 rounded-2xl p-5 text-sm text-stone-600 border border-stone-100 overflow-y-auto max-h-[26rem] shadow-inner">
-                    <p class="text-stone-400 italic text-center py-4">Click "Analyze Sleep" to receive personalized wake-window targets and pediatric sleep insights for <span class="baby-name-display font-semibold text-indigo-500">Baby</span>.</p>
+                <div id="gemini-coach-content">
+                    <div id="ai-analysis-result" class="bg-stone-50 rounded-2xl p-5 text-sm text-stone-600 border border-stone-100 overflow-y-auto max-h-[26rem] shadow-inner">
+                        <p class="text-stone-400 italic text-center py-4">Click "Analyze Sleep" to receive personalized wake-window targets and pediatric sleep insights for <span class="baby-name-display font-semibold text-indigo-500">Baby</span>.</p>
+                    </div>
                 </div>
             </div>
 
@@ -469,7 +511,7 @@
 
                 document.getElementById('fields-feeding').classList.remove('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');
-                document.getElementById('fields-diaper').classList.add('hidden');
+                document.getElementById('fields-nappy').classList.add('hidden');
             } else if (type === 'SLEEP') {
                 const b = document.getElementById('btn-sleep');
                 b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
@@ -477,15 +519,15 @@
 
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.remove('hidden');
-                document.getElementById('fields-diaper').classList.add('hidden');
-            } else if (type === 'DIAPER') {
-                const b = document.getElementById('btn-diaper');
+                document.getElementById('fields-nappy').classList.add('hidden');
+            } else if (type === 'NAPPY') {
+                const b = document.getElementById('btn-nappy');
                 b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
                 b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
 
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');
-                document.getElementById('fields-diaper').classList.remove('hidden');
+                document.getElementById('fields-nappy').classList.remove('hidden');
             }
         }
 
@@ -609,7 +651,15 @@
             `;
 
             try {
-                const res = await fetch('/api/analyze-sleep', { method: 'POST' });
+                const headers = { 'Content-Type': 'application/json' };
+                const customKey = localStorage.getItem('gemini_api_key');
+                if (customKey) {
+                    headers['x-gemini-api-key'] = customKey;
+                }
+                const res = await fetch('/api/analyze-sleep', {
+                    method: 'POST',
+                    headers: headers
+                });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.recommendation) {
@@ -735,9 +785,9 @@
                 details = {
                     durationMinutes: parseInt(document.getElementById('sleep-duration').value)
                 };
-            } else if (type === 'DIAPER') {
+            } else if (type === 'NAPPY') {
                 details = {
-                    status: document.getElementById('diaper-status').value
+                    status: document.getElementById('nappy-status').value
                 };
             }
 
@@ -827,7 +877,7 @@
                             sleepMinutes += parseInt(details.durationMinutes || 0);
                         } catch (e){}
                     }
-                } else if (a.type === 'DIAPER') {
+                } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
                     iconClass = 'fa-solid fa-baby-carriage';
                     badgeClass = 'bg-pink-100 text-pink-800';
                     displayType = 'NAPPY';
@@ -841,7 +891,7 @@
                         detailsText = `${details.method || 'Bottle'}: ${details.amount || 0} ${details.unit || 'ml'} (${details.durationMinutes || 0} mins)`;
                     } else if (a.type === 'SLEEP') {
                         detailsText = `Asleep for ${details.durationMinutes || 0} mins`;
-                    } else if (a.type === 'DIAPER') {
+                    } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
                         detailsText = `Status: ${details.status || 'Wet'}`;
                     }
                 } catch(e) {
@@ -895,7 +945,7 @@
             }
 
             data.forEach(a => {
-                const mapType = a.type === 'DIAPER' ? 'NAPPY' : a.type;
+                const mapType = (a.type === 'DIAPER' || a.type === 'NAPPY') ? 'NAPPY' : a.type;
                 dist[mapType] = (dist[mapType] || 0) + 1;
 
                 if (a.type === 'SLEEP') {
@@ -1019,12 +1069,12 @@
                         <input type="number" id="edit-sleep-duration" value="${details.durationMinutes || 60}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
                     </div>
                 `;
-            } else if (act.type === 'DIAPER') {
+            } else if (act.type === 'DIAPER' || act.type === 'NAPPY') {
                 const status = details.status || 'Wet';
                 fieldsHtml = `
                     <div>
                         <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Nappy Status</label>
-                        <select id="edit-diaper-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                        <select id="edit-nappy-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
                             <option value="Wet" ${status === 'Wet' ? 'selected' : ''}>Wet</option>
                             <option value="Dirty" ${status === 'Dirty' ? 'selected' : ''}>Dirty (Poop)</option>
                             <option value="Both" ${status === 'Both' ? 'selected' : ''}>Wet & Dirty</option>
@@ -1069,9 +1119,9 @@
                 details = {
                     durationMinutes: parseInt(document.getElementById('edit-sleep-duration').value)
                 };
-            } else if (type === 'DIAPER') {
+            } else if (type === 'DIAPER' || type === 'NAPPY') {
                 details = {
-                    status: document.getElementById('edit-diaper-status').value
+                    status: document.getElementById('edit-nappy-status').value
                 };
             }
 
@@ -1102,8 +1152,182 @@
             }
         }
 
+        function saveGeminiKey() {
+            const keyInput = document.getElementById('settings-gemini-key');
+            const key = keyInput.value.trim();
+            const status = document.getElementById('gemini-key-status');
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                status.innerText = "Custom API Key saved!";
+                status.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-bold";
+            } else {
+                localStorage.removeItem('gemini_api_key');
+                status.innerText = "Cleared custom API key.";
+                status.className = "text-[10px] text-stone-500 font-bold";
+            }
+            setTimeout(() => { status.innerText = ''; }, 3000);
+        }
+
+        function toggleMinimizeGemini() {
+            const content = document.getElementById('gemini-coach-content');
+            const action = document.getElementById('gemini-coach-header-action');
+            const icon = document.getElementById('minimize-gemini-icon');
+            const isHidden = content.classList.toggle('hidden');
+            action.classList.toggle('hidden', isHidden);
+            if (isHidden) {
+                icon.className = 'fa-solid fa-chevron-down';
+                localStorage.setItem('gemini-minimised', 'true');
+            } else {
+                icon.className = 'fa-solid fa-chevron-up';
+                localStorage.setItem('gemini-minimised', 'false');
+            }
+        }
+
+        function exportToCSV() {
+            if (activities.length === 0) {
+                alert("No logs to export!");
+                return;
+            }
+            let csvRows = ["id,type,babyName,timestamp,detailsJson,notes,updatedAt,isDeleted"];
+            
+            activities.forEach(act => {
+                const detailsStr = typeof act.detailsJson === 'string' ? act.detailsJson : JSON.stringify(act.detailsJson);
+                const row = [
+                    act.id,
+                    act.type,
+                    act.babyName,
+                    act.timestamp,
+                    `"${detailsStr.replace(/"/g, '""')}"`,
+                    `"${(act.notes || '').replace(/"/g, '""')}"`,
+                    act.updatedAt || Date.now(),
+                    act.isDeleted || 0
+                ];
+                csvRows.push(row.join(","));
+            });
+
+            const csvContent = csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `baby_tracker_activities_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerCSVImport() {
+            document.getElementById('csv-file-input').click();
+        }
+
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/);
+                if (lines.length < 2) {
+                    alert("Invalid CSV file.");
+                    return;
+                }
+
+                const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+                const importedActivities = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    const row = [];
+                    let insideQuote = false;
+                    let currentField = '';
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        if (char === '"') {
+                            if (insideQuote && line[j+1] === '"') {
+                                currentField += '"';
+                                j++;
+                            } else {
+                                insideQuote = !insideQuote;
+                            }
+                        } else if (char === ',' && !insideQuote) {
+                            row.push(currentField);
+                            currentField = '';
+                        } else {
+                            currentField += char;
+                        }
+                    }
+                    row.push(currentField);
+
+                    if (row.length < headers.length) continue;
+
+                    const act = {};
+                    headers.forEach((header, index) => {
+                        let val = row[index];
+                        if (val !== undefined) {
+                            val = val.trim();
+                            if (val.startsWith('"') && val.endsWith('"')) {
+                                val = val.substring(1, val.length - 1);
+                            }
+                        }
+                        act[header] = val;
+                    });
+
+                    if (!act.id) act.id = generateUUID();
+                    if (!act.type) continue;
+                    if (!act.babyName) act.babyName = profileName;
+                    if (!act.timestamp) act.timestamp = Date.now().toString();
+                    if (!act.detailsJson) {
+                        if (act.type === 'FEEDING') act.detailsJson = JSON.stringify({ method: 'Bottle', amount: 120, unit: 'ml', durationMinutes: 15 });
+                        else if (act.type === 'SLEEP') act.detailsJson = JSON.stringify({ durationMinutes: 60 });
+                        else act.detailsJson = JSON.stringify({ status: 'Wet' });
+                    }
+
+                    importedActivities.push(act);
+                }
+
+                if (importedActivities.length === 0) {
+                    alert("No valid activities found to import.");
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/activities/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ activities: importedActivities })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert(`Successfully imported ${result.count} activities!`);
+                        fetchData();
+                    } else {
+                        const err = await response.json();
+                        alert(`Failed to import activities: ${err.error || 'Unknown error'}`);
+                    }
+                } catch (err) {
+                    console.error("Bulk import failed:", err);
+                    alert("Network error. Failed to import CSV.");
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
         // Initialize Page
         async function init() {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('settings-gemini-key').value = savedKey;
+            }
+            if (localStorage.getItem('gemini-minimised') === 'true') {
+                toggleMinimizeGemini();
+            }
             await fetchProfile();
             await fetchData();
         }

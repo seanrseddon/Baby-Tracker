@@ -36,7 +36,7 @@ fun AddActivityScreen(
     viewModel: BabyViewModel,
     onNavigateBack: () -> Unit
 ) {
-    var selectedType by remember { mutableStateOf("FEEDING") } // FEEDING, SLEEP, DIAPER
+    var selectedType by remember { mutableStateOf("FEEDING") } // FEEDING, SLEEP, NAPPY
     var notes by remember { mutableStateOf("") }
     
     // Feeding fields
@@ -48,8 +48,8 @@ fun AddActivityScreen(
     // Sleep fields
     var sleepDuration by remember { mutableStateOf("60") }
 
-    // Diaper fields
-    var diaperStatus by remember { mutableStateOf("Wet") } // Wet, Dirty, Both, Dry
+    // Nappy fields
+    var nappyStatus by remember { mutableStateOf("Wet") } // Wet, Dirty, Both, Dry
 
     var timeOffsetMinutes by remember { mutableStateOf(0) } // 0=Now, 15=15m ago, 30=30m ago, 60=1h ago, -1=Custom
     var selectedCustomTime by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -156,11 +156,11 @@ fun AddActivityScreen(
                 )
                 TypeTabButton(
                     label = "Nappy",
-                    isSelected = selectedType == "DIAPER",
+                    isSelected = selectedType == "NAPPY",
                     icon = Icons.Default.Opacity,
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
-                    onClick = { selectedType = "DIAPER" }
+                    onClick = { selectedType = "NAPPY" }
                 )
             }
 
@@ -270,7 +270,7 @@ fun AddActivityScreen(
                             )
                         }
 
-                        "DIAPER" -> {
+                        "NAPPY" -> {
                             Column {
                                 Text("Status", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -279,14 +279,14 @@ fun AddActivityScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     listOf("Wet", "Dirty", "Both", "Dry").forEach { status ->
-                                        val isSel = diaperStatus == status
+                                        val isSel = nappyStatus == status
                                         val activeColor = MaterialTheme.colorScheme.tertiary
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .clip(RoundedCornerShape(12.dp))
                                                 .background(if (isSel) activeColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow)
-                                                .clickable { diaperStatus = status }
+                                                .clickable { nappyStatus = status }
                                                 .padding(vertical = 12.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -396,8 +396,8 @@ fun AddActivityScreen(
                         "SLEEP" -> {
                             details.put("durationMinutes", sleepDuration.toIntOrNull() ?: 60)
                         }
-                        "DIAPER" -> {
-                            details.put("status", diaperStatus)
+                        "NAPPY" -> {
+                            details.put("status", nappyStatus)
                         }
                     }
 
