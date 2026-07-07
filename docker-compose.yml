@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  baby-tracker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: baby-tracker-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - baby-tracker-data:/data
+    environment:
+      - PORT=3000
+
+volumes:
+  baby-tracker-data:
+    driver: local

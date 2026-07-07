@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baby Tracker - Shared Local Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for beautiful visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for beautiful icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        babyBlue: '#e0f2fe',
+                        babyPink: '#fce7f3',
+                        babyYellow: '#fef9c3',
+                        brandPrimary: '#0ea5e9',
+                        brandAccent: '#ec4899',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@300..700&display=swap');
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #fafaf9;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    <!-- Header banner -->
+    <header class="bg-white border-b border-sky-100 shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 text-2xl shadow-inner">
+                    <i class="fa-solid fa-baby"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-sky-700 leading-tight">Baby Tracker</h1>
+                    <p class="text-xs text-sky-500 font-semibold uppercase tracking-wider">Shared Local Dashboard</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Local Privacy Core Online
+                </span>
+                <button onclick="fetchData()" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Pane: Baby Profile, Stats & Log Form -->
+        <div class="lg:col-span-1 space-y-6">
+            
+            <!-- Baby Profile Card -->
+            <div class="bg-white rounded-3xl border border-stone-100 p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider">Baby Profile</h3>
+                    <button onclick="toggleProfileEdit()" class="text-sky-500 hover:text-sky-600 text-xs font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-pen-to-square"></i> <span id="profile-btn-text">Edit</span>
+                    </button>
+                </div>
+                
+                <!-- View Mode -->
+                <div id="profile-view" class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-500 text-2xl border border-sky-100">
+                        <i class="fa-solid fa-child"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-stone-800 leading-tight" id="profile-name-display">Baby</h2>
+                        <p class="text-xs text-stone-500 font-medium" id="profile-age-display">Age not configured</p>
+                    </div>
+                </div>
+                
+                <!-- Edit Mode (hidden by default) -->
+                <div id="profile-edit" class="hidden mt-4 space-y-3.5 border-t border-stone-50 pt-4">
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Name</label>
+                        <input type="text" id="edit-baby-name" placeholder="Baby Name" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Date of Birth</label>
+                        <input type="date" id="edit-baby-dob" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                    </div>
+                    <button onclick="saveProfile()" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+                        Save Profile Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats & Quick Info -->
+            <div class="bg-gradient-to-br from-sky-400 to-sky-500 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 text-white/10 text-9xl">
+                    <i class="fa-solid fa-baby-carriage"></i>
+                </div>
+                <div class="relative z-10">
+                    <h2 class="text-2xl font-bold mb-1">Little One's Day</h2>
+                    <p class="text-sky-100 text-sm mb-4">A unified view of feedings, sleeps, and changes.</p>
+                    <div class="grid grid-cols-3 gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center">
+                        <div>
+                            <div class="text-xs text-sky-200 font-medium">Feedings</div>
+                            <div class="text-lg font-bold brand-font" id="stat-feeds">0</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-sky-200 font-medium">Sleep</div>
+                            <div class="text-lg font-bold brand-font" id="stat-sleep">0h</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-sky-200 font-medium">Nappies</div>
+                            <div class="text-lg font-bold brand-font" id="stat-nappies">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Add Log -->
+            <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
+                <h2 class="text-xl font-bold text-stone-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-pink-500"></i> Record Activity
+                </h2>
+                
+                <!-- Type Selector -->
+                <div class="grid grid-cols-3 gap-2 mb-6">
+                    <button id="btn-feed" onclick="selectType('FEEDING')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 bg-sky-50/50 text-sky-600 border-sky-100 font-bold">
+                        <i class="fa-solid fa-bottle-milk text-lg"></i>
+                        <span class="text-xs">Feeding</span>
+                    </button>
+                    <button id="btn-sleep" onclick="selectType('SLEEP')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
+                        <i class="fa-solid fa-moon text-lg"></i>
+                        <span class="text-xs">Sleep</span>
+                    </button>
+                    <button id="btn-diaper" onclick="selectType('DIAPER')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
+                        <i class="fa-solid fa-baby-carriage text-lg"></i>
+                        <span class="text-xs">Nappy</span>
+                    </button>
+                </div>
+
+                <!-- Form container -->
+                <form id="activity-form" onsubmit="submitForm(event)" class="space-y-4">
+                    <input type="hidden" id="form-type" value="FEEDING">
+                    
+                    <!-- Common fields -->
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Baby Name</label>
+                        <input type="text" id="form-baby" value="Baby" required class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm bg-stone-50" readonly>
+                    </div>
+
+                    <!-- Dynamic Fields: Feeding -->
+                    <div id="fields-feeding" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Feeding Method</label>
+                            <select id="feed-method" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                <option value="Bottle">Bottle (Formula/Expressed)</option>
+                                <option value="Breast">Breastfeeding</option>
+                                <option value="Solid">Solid Food</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Amount</label>
+                                <input type="number" id="feed-amount" value="120" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Unit</label>
+                                <select id="feed-unit" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                    <option value="ml">ml</option>
+                                    <option value="oz">oz</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Duration (minutes)</label>
+                            <input type="number" id="feed-duration" value="15" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fields: Sleep -->
+                    <div id="fields-sleep" class="space-y-3 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Sleep Duration (minutes)</label>
+                            <input type="number" id="sleep-duration" value="60" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fields: Nappy (Diaper) -->
+                    <div id="fields-diaper" class="space-y-3 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Nappy Status</label>
+                            <select id="diaper-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                <option value="Wet">Wet</option>
+                                <option value="Dirty">Dirty (Poop)</option>
+                                <option value="Both">Wet & Dirty</option>
+                                <option value="Dry">Dry</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Notes</label>
+                        <textarea id="form-notes" rows="2" placeholder="Any optional remarks..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-sm font-bold transition-all shadow-md">
+                        Save Log Entry
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Middle & Right Pane: Gemini Coach, Charts, History -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Gemini Sleep Coach Card -->
+            <div id="ai-coach-card" class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm relative overflow-hidden" style="border-left: 4px solid #6366f1;">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500 text-lg shadow-sm border border-indigo-100/30">
+                            <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-stone-800 leading-tight">Gemini Sleep Coach</h3>
+                            <p class="text-xs text-stone-400 font-semibold uppercase tracking-wider">Smart Nap Predictions & Insights</p>
+                        </div>
+                    </div>
+                    <button onclick="analyzeSleep()" id="btn-analyze" class="w-full sm:w-auto px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-brain" id="brain-icon"></i> <span id="analyze-text">Analyze Sleep & Predict Naps</span>
+                    </button>
+                </div>
+                
+                <div id="ai-analysis-result" class="bg-stone-50 rounded-2xl p-5 text-sm text-stone-600 border border-stone-100 overflow-y-auto max-h-[26rem] shadow-inner">
+                    <p class="text-stone-400 italic text-center py-4">Click "Analyze Sleep" to receive personalized wake-window targets and pediatric sleep insights for <span class="baby-name-display font-semibold text-indigo-500">Baby</span>.</p>
+                </div>
+            </div>
+
+            <!-- Analytics Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Sleeping Trends -->
+                <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-stone-800 mb-4">Sleep Over Time</h3>
+                    <div class="h-48 flex items-center justify-center">
+                        <canvas id="sleepChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Feedings & Nappies distribution -->
+                <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-stone-800 mb-4">Activity Log Distribution</h3>
+                    <div class="h-48 flex items-center justify-center">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Logs List -->
+            <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
+                <h3 class="text-xl font-bold text-stone-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-sky-500"></i> Historic Activity Log
+                </h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[500px]">
+                        <thead>
+                            <tr class="border-b border-stone-100 text-xs text-stone-400 font-bold uppercase tracking-wider">
+                                <th class="pb-3 pl-2 w-1/4">Time</th>
+                                <th class="pb-3 w-1/5">Type</th>
+                                <th class="pb-3 w-2/5">Activity Specifics</th>
+                                <th class="pb-3 w-1/5">Notes</th>
+                                <th class="pb-3 text-right pr-2">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody" class="text-sm divide-y divide-stone-50">
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-stone-400">
+                                    <i class="fa-solid fa-baby-carriage text-2xl mb-2 text-stone-300"></i>
+                                    <p>Loading activity logs...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="max-w-6xl mx-auto px-4 mt-12 text-center text-xs text-stone-400 font-semibold">
+        <p>Baby Tracker Local Server &copy; 2026. Self-Hosted for Ultimate Data Privacy.</p>
+    </footer>
+
+    <!-- Frontend scripts -->
+    <script>
+        let activities = [];
+        let sleepChart = null;
+        let distChart = null;
+        let profileName = "Baby";
+        let profileDob = 0;
+
+        function selectType(type) {
+            document.getElementById('form-type').value = type;
+            
+            // Toggle active visual states of buttons
+            const btns = document.querySelectorAll('.type-btn');
+            btns.forEach(b => {
+                b.classList.remove('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+                b.classList.add('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
+            });
+
+            if (type === 'FEEDING') {
+                const b = document.getElementById('btn-feed');
+                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
+                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+
+                document.getElementById('fields-feeding').classList.remove('hidden');
+                document.getElementById('fields-sleep').classList.add('hidden');
+                document.getElementById('fields-diaper').classList.add('hidden');
+            } else if (type === 'SLEEP') {
+                const b = document.getElementById('btn-sleep');
+                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
+                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+
+                document.getElementById('fields-feeding').classList.add('hidden');
+                document.getElementById('fields-sleep').classList.remove('hidden');
+                document.getElementById('fields-diaper').classList.add('hidden');
+            } else if (type === 'DIAPER') {
+                const b = document.getElementById('btn-diaper');
+                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
+                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+
+                document.getElementById('fields-feeding').classList.add('hidden');
+                document.getElementById('fields-sleep').classList.add('hidden');
+                document.getElementById('fields-diaper').classList.remove('hidden');
+            }
+        }
+
+        async function fetchProfile() {
+            try {
+                const res = await fetch('/api/profile');
+                if (res.ok) {
+                    const data = await res.json();
+                    profileName = data.babyName || "Baby";
+                    profileDob = data.babyDob || 0;
+                    updateProfileUI();
+                }
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+            }
+        }
+
+        function updateProfileUI() {
+            document.getElementById('profile-name-display').innerText = profileName;
+            document.getElementById('edit-baby-name').value = profileName;
+            document.getElementById('form-baby').value = profileName;
+            
+            const nameDisplays = document.querySelectorAll('.baby-name-display');
+            nameDisplays.forEach(el => el.innerText = profileName);
+
+            if (profileDob > 0) {
+                const dobDate = new Date(profileDob);
+                const yyyy = dobDate.getFullYear();
+                const mm = String(dobDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(dobDate.getDate()).padStart(2, '0');
+                document.getElementById('edit-baby-dob').value = `${yyyy}-${mm}-${dd}`;
+
+                // Age calculation
+                const diffMs = Date.now() - profileDob;
+                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const months = Math.floor(days / 30);
+                const weeks = Math.floor(days / 7);
+                let ageStr = '';
+                if (months > 0) {
+                    ageStr = `${months} month${months > 1 ? 's' : ''} old`;
+                } else if (weeks > 0) {
+                    ageStr = `${weeks} week${weeks > 1 ? 's' : ''} old`;
+                } else {
+                    ageStr = `${days} day${days !== 1 ? 's' : ''} old`;
+                }
+                document.getElementById('profile-age-display').innerText = `Born ${dobDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} (${ageStr})`;
+            } else {
+                document.getElementById('profile-age-display').innerText = "Age not configured (tap edit)";
+            }
+        }
+
+        function toggleProfileEdit() {
+            const editDiv = document.getElementById('profile-edit');
+            const viewDiv = document.getElementById('profile-view');
+            const btnText = document.getElementById('profile-btn-text');
+
+            if (editDiv.classList.contains('hidden')) {
+                editDiv.classList.remove('hidden');
+                viewDiv.classList.add('hidden');
+                btnText.innerText = "Cancel";
+            } else {
+                editDiv.classList.add('hidden');
+                viewDiv.classList.remove('hidden');
+                btnText.innerText = "Edit";
+            }
+        }
+
+        async function saveProfile() {
+            const nameInput = document.getElementById('edit-baby-name').value.trim() || "Baby";
+            const dobInput = document.getElementById('edit-baby-dob').value;
+            let dobMs = 0;
+            if (dobInput) {
+                // Add UTC-offset adjustment so local dates are evaluated correctly
+                dobMs = new Date(dobInput).getTime();
+            }
+
+            try {
+                const res = await fetch('/api/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        babyName: nameInput,
+                        babyDob: dobMs
+                    })
+                });
+
+                if (res.ok) {
+                    profileName = nameInput;
+                    profileDob = dobMs;
+                    updateProfileUI();
+                    toggleProfileEdit();
+                    fetchData();
+                }
+            } catch (err) {
+                console.error('Error saving profile:', err);
+                alert('Failed to save profile settings.');
+            }
+        }
+
+        async function analyzeSleep() {
+            if (profileDob <= 0) {
+                alert("Please configure your baby's Date of Birth in the Profile section first.");
+                toggleProfileEdit();
+                return;
+            }
+
+            const btn = document.getElementById('btn-analyze');
+            const icon = document.getElementById('brain-icon');
+            const txt = document.getElementById('analyze-text');
+            const resultBox = document.getElementById('ai-analysis-result');
+            
+            btn.disabled = true;
+            icon.className = "fa-solid fa-spinner animate-spin";
+            txt.innerText = "Analyzing Logs...";
+            resultBox.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 text-stone-400 gap-3">
+                    <i class="fa-solid fa-wand-magic-sparkles text-3xl text-indigo-400 animate-pulse"></i>
+                    <p class="text-sm font-semibold animate-pulse text-indigo-500">Gemini is evaluating sleeping patterns...</p>
+                    <p class="text-xs text-stone-400">Comparing age-specific sleep targets and wake window history...</p>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('/api/analyze-sleep', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.recommendation) {
+                        resultBox.innerHTML = renderMarkdown(data.recommendation);
+                    } else {
+                        resultBox.innerHTML = `<p class="text-red-500 text-center font-bold">No predictions returned from Sleep Coach.</p>`;
+                    }
+                } else {
+                    const errData = await res.json();
+                    resultBox.innerHTML = `<p class="text-red-500 text-center font-semibold py-4"><i class="fa-solid fa-circle-exclamation mr-1.5"></i> ${errData.error || 'Server error'}</p>`;
+                }
+            } catch (err) {
+                resultBox.innerHTML = `<p class="text-red-500 text-center font-semibold py-4"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Connection failed: ${err.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                icon.className = "fa-solid fa-brain";
+                txt.innerText = "Refresh Insights";
+            }
+        }
+
+        function renderMarkdown(md) {
+            const lines = md.split('\n');
+            let html = '<div class="space-y-4 text-stone-700">';
+            let inList = false;
+            
+            lines.forEach(line => {
+                let trimmed = line.trim();
+                
+                // Unordered lists
+                if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                    if (!inList) {
+                        html += '<ul class="list-disc pl-5 space-y-1.5 text-stone-600">';
+                        inList = true;
+                    }
+                    let content = trimmed.substring(1).trim();
+                    html += `<li>${parseBold(content)}</li>`;
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    
+                    // Headers
+                    if (trimmed.startsWith('###')) {
+                        html += `<h4 class="text-sm font-bold text-indigo-700 mt-4 mb-1.5">${parseBold(trimmed.replace('###', '').trim())}</h4>`;
+                    } else if (trimmed.startsWith('##')) {
+                        html += `<h3 class="text-md font-bold text-indigo-800 mt-5 mb-2 border-b border-indigo-100 pb-1">${parseBold(trimmed.replace('##', '').trim())}</h3>`;
+                    } else if (trimmed.startsWith('#')) {
+                        html += `<h2 class="text-lg font-bold text-indigo-900 mt-6 mb-3">${parseBold(trimmed.replace('#', '').trim())}</h2>`;
+                    } else if (trimmed !== '') {
+                        html += `<p class="leading-relaxed text-xs sm:text-sm">${parseBold(trimmed)}</p>`;
+                    }
+                }
+            });
+            
+            if (inList) {
+                html += '</ul>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function parseBold(text) {
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-stone-900">$1</strong>');
+        }
+
+        async function fetchData() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            refreshIcon.classList.add('animate-spin');
+
+            try {
+                const res = await fetch('/api/activities');
+                if (res.ok) {
+                    activities = await res.json();
+                    renderData();
+                }
+            } catch (err) {
+                console.error('Error fetching activities:', err);
+            } finally {
+                setTimeout(() => {
+                    refreshIcon.classList.remove('animate-spin');
+                }, 500);
+            }
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        async function submitForm(e) {
+            e.preventDefault();
+
+            const type = document.getElementById('form-type').value;
+            const babyNameVal = profileName;
+            const notes = document.getElementById('form-notes').value;
+            const timestamp = Date.now();
+            const id = generateUUID();
+
+            let details = {};
+            if (type === 'FEEDING') {
+                details = {
+                    method: document.getElementById('feed-method').value,
+                    amount: parseFloat(document.getElementById('feed-amount').value),
+                    unit: document.getElementById('feed-unit').value,
+                    durationMinutes: parseInt(document.getElementById('feed-duration').value)
+                };
+            } else if (type === 'SLEEP') {
+                details = {
+                    durationMinutes: parseInt(document.getElementById('sleep-duration').value)
+                };
+            } else if (type === 'DIAPER') {
+                details = {
+                    status: document.getElementById('diaper-status').value
+                };
+            }
+
+            const body = {
+                id,
+                type,
+                babyName: babyNameVal,
+                timestamp,
+                detailsJson: JSON.stringify(details),
+                notes
+            };
+
+            try {
+                const res = await fetch('/api/activities', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    // Reset form notes
+                    document.getElementById('form-notes').value = '';
+                    fetchData();
+                }
+            } catch (err) {
+                console.error('Error saving activity:', err);
+            }
+        }
+
+        async function deleteActivity(id) {
+            if (!confirm('Are you sure you want to delete this activity log?')) return;
+            try {
+                const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    fetchData();
+                }
+            } catch (err) {
+                console.error('Error deleting activity:', err);
+            }
+        }
+
+        function renderData() {
+            // Sort desc
+            activities.sort((a,b) => b.timestamp - a.timestamp);
+
+            const tbody = document.getElementById('logs-tbody');
+            if (activities.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-stone-400">
+                            <i class="fa-solid fa-cookie-bite text-3xl mb-2 text-stone-300"></i>
+                            <p>No activity logs recorded yet. Use the form to record one!</p>
+                        </td>
+                    </tr>
+                `;
+                updateStats(0, 0, 0);
+                renderCharts([]);
+                return;
+            }
+
+            // Today calculation
+            const todayStart = new Date();
+            todayStart.setHours(0,0,0,0);
+
+            let feedCount = 0;
+            let sleepMinutes = 0;
+            let nappyCount = 0;
+
+            let rowsHtml = '';
+            activities.forEach(a => {
+                const date = new Date(a.timestamp);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                
+                let iconClass = '';
+                let badgeClass = '';
+                let displayType = a.type;
+                if (a.type === 'FEEDING') {
+                    iconClass = 'fa-solid fa-bottle-milk';
+                    badgeClass = 'bg-sky-100 text-sky-800';
+                    if (a.timestamp >= todayStart.getTime()) feedCount++;
+                } else if (a.type === 'SLEEP') {
+                    iconClass = 'fa-solid fa-moon';
+                    badgeClass = 'bg-indigo-100 text-indigo-800';
+                    if (a.timestamp >= todayStart.getTime()) {
+                        try {
+                            const details = JSON.parse(a.detailsJson);
+                            sleepMinutes += parseInt(details.durationMinutes || 0);
+                        } catch (e){}
+                    }
+                } else if (a.type === 'DIAPER') {
+                    iconClass = 'fa-solid fa-baby-carriage';
+                    badgeClass = 'bg-pink-100 text-pink-800';
+                    displayType = 'NAPPY';
+                    if (a.timestamp >= todayStart.getTime()) nappyCount++;
+                }
+
+                let detailsText = '';
+                try {
+                    const details = JSON.parse(a.detailsJson);
+                    if (a.type === 'FEEDING') {
+                        detailsText = `${details.method || 'Bottle'}: ${details.amount || 0} ${details.unit || 'ml'} (${details.durationMinutes || 0} mins)`;
+                    } else if (a.type === 'SLEEP') {
+                        detailsText = `Asleep for ${details.durationMinutes || 0} mins`;
+                    } else if (a.type === 'DIAPER') {
+                        detailsText = `Status: ${details.status || 'Wet'}`;
+                    }
+                } catch(e) {
+                    detailsText = a.detailsJson;
+                }
+
+                rowsHtml += `
+                    <tr class="hover:bg-stone-50/50">
+                        <td class="py-3.5 pl-2 text-stone-500 font-semibold text-xs">${timeStr}</td>
+                        <td class="py-3.5">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">
+                                <i class="${iconClass}"></i> ${displayType}
+                            </span>
+                        </td>
+                        <td class="py-3.5 text-stone-800 font-semibold">${detailsText}</td>
+                        <td class="py-3.5 text-stone-500 italic max-w-[150px] sm:max-w-xs truncate" title="${a.notes}">${a.notes || '-'}</td>
+                        <td class="py-3.5 text-right pr-2">
+                            <button onclick="deleteActivity('${a.id}')" class="text-stone-300 hover:text-red-500 transition-colors p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = rowsHtml;
+            updateStats(feedCount, (sleepMinutes / 60).toFixed(1), nappyCount);
+            renderCharts(activities);
+        }
+
+        function updateStats(feeds, sleepHours, nappies) {
+            document.getElementById('stat-feeds').innerText = feeds;
+            document.getElementById('stat-sleep').innerText = sleepHours + 'h';
+            document.getElementById('stat-nappies').innerText = nappies;
+        }
+
+        function renderCharts(data) {
+            // Group sleep by days (last 7 days)
+            const days = {};
+            const dist = { FEEDING: 0, SLEEP: 0, NAPPY: 0 };
+
+            // Initialize last 7 days
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const key = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                days[key] = 0;
+            }
+
+            data.forEach(a => {
+                const mapType = a.type === 'DIAPER' ? 'NAPPY' : a.type;
+                dist[mapType] = (dist[mapType] || 0) + 1;
+
+                if (a.type === 'SLEEP') {
+                    const dateStr = new Date(a.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    if (days[dateStr] !== undefined) {
+                        try {
+                            const details = JSON.parse(a.detailsJson);
+                            days[dateStr] += parseFloat(details.durationMinutes || 0) / 60; // hours
+                        } catch(e){}
+                    }
+                }
+            });
+
+            // Sleep Chart
+            const ctxSleep = document.getElementById('sleepChart').getContext('2d');
+            if (sleepChart) sleepChart.destroy();
+            sleepChart = new Chart(ctxSleep, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(days),
+                    datasets: [{
+                        label: 'Hours Slept',
+                        data: Object.values(days),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Distribution Chart
+            const ctxDist = document.getElementById('distributionChart').getContext('2d');
+            if (distChart) distChart.destroy();
+            distChart = new Chart(ctxDist, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Feedings', 'Sleep', 'Nappies'],
+                    datasets: [{
+                        data: [dist.FEEDING, dist.SLEEP, dist.NAPPY],
+                        backgroundColor: ['#0ea5e9', '#6366f1', '#ec4899'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Quicksand', weight: 'bold' } } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Initialize Page
+        async function init() {
+            await fetchProfile();
+            await fetchData();
+        }
+
+        init();
+    </script>
+</body>
+</html>

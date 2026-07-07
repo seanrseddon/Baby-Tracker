@@ -1,0 +1,14 @@
+{
+  "name": "baby-tracker-backend",
+  "version": "1.0.0",
+  "description": "Self-hosted local baby activity tracker backend with web dashboard for Unraid/Docker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.7"
+  }
+}

@@ -1,0 +1,308 @@
+package com.example.ui
+
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.BuildConfig
+import com.example.data.api.GeminiClient
+import com.example.data.api.GeminiRequest
+import com.example.data.api.GeminiContent
+import com.example.data.api.GeminiPart
+import com.example.data.local.BabyDatabase
+import com.example.data.model.BabyActivity
+import com.example.data.repository.BabyRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
+
+class BabyViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val db = BabyDatabase.getDatabase(application)
+    private val repository = BabyRepository(db.babyActivityDao())
+
+    private val prefs: SharedPreferences = application.getSharedPreferences(
+        "baby_tracker_prefs",
+        Context.MODE_PRIVATE
+    )
+
+    // Expose reactive stream of baby activities
+    val activities: StateFlow<List<BabyActivity>> = repository.allActiveActivities
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Configuration states
+    private val _serverUrl = MutableStateFlow(prefs.getString("server_url", "http://192.168.1.100:3000") ?: "")
+    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
+
+    private val _babyName = MutableStateFlow(prefs.getString("baby_name", "Baby") ?: "Baby")
+    val babyName: StateFlow<String> = _babyName.asStateFlow()
+
+    private val _babyDob = MutableStateFlow(prefs.getLong("baby_dob", 0L))
+    val babyDob: StateFlow<Long> = _babyDob.asStateFlow()
+
+    private val _lastSyncTime = MutableStateFlow(prefs.getLong("last_sync_time", 0L))
+    val lastSyncTime: StateFlow<Long> = _lastSyncTime.asStateFlow()
+
+    // Sync state
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _syncError = MutableStateFlow<String?>(null)
+    val syncError: StateFlow<String?> = _syncError.asStateFlow()
+
+    private val _syncSuccess = MutableStateFlow(false)
+    val syncSuccess: StateFlow<Boolean> = _syncSuccess.asStateFlow()
+
+    // AI Recommendations states
+    private val _aiRecommendation = MutableStateFlow(prefs.getString("ai_recommendation", "") ?: "")
+    val aiRecommendation: StateFlow<String> = _aiRecommendation.asStateFlow()
+
+    private val _isAnalyzingSleep = MutableStateFlow(false)
+    val isAnalyzingSleep: StateFlow<Boolean> = _isAnalyzingSleep.asStateFlow()
+
+    private val _analysisError = MutableStateFlow<String?>(null)
+    val analysisError: StateFlow<String?> = _analysisError.asStateFlow()
+
+    // Active Sleep Timer state
+    private val _sleepTimerStart = MutableStateFlow<Long?>(
+        if (prefs.contains("sleep_timer_start")) {
+            val savedTime = prefs.getLong("sleep_timer_start", 0L)
+            if (savedTime > 0L) savedTime else null
+        } else null
+    )
+    val sleepTimerStart: StateFlow<Long?> = _sleepTimerStart.asStateFlow()
+
+    init {
+        // Automatically fetch if we have a server configured
+        if (_serverUrl.value.isNotBlank()) {
+            triggerSync()
+        }
+    }
+
+    fun updateServerUrl(url: String) {
+        _serverUrl.value = url
+        prefs.edit().putString("server_url", url).apply()
+    }
+
+    fun updateBabyName(name: String) {
+        _babyName.value = name
+        prefs.edit().putString("baby_name", name).apply()
+    }
+
+    fun clearSyncTime() {
+        _lastSyncTime.value = 0L
+        prefs.edit().putLong("last_sync_time", 0L).apply()
+    }
+
+    // Start active sleep tracking timer
+    fun startSleepTimer() {
+        val now = System.currentTimeMillis()
+        _sleepTimerStart.value = now
+        prefs.edit().putLong("sleep_timer_start", now).apply()
+    }
+
+    // Stop and save active sleep timer log
+    fun stopAndSaveSleepTimer(notes: String = "") {
+        val start = _sleepTimerStart.value ?: return
+        val end = System.currentTimeMillis()
+        val durationMinutes = ((end - start) / 60000).toInt().coerceAtLeast(1)
+
+        val details = JSONObject().apply {
+            put("durationMinutes", durationMinutes)
+            put("startTime", start)
+            put("endTime", end)
+        }.toString()
+
+        logActivity(
+            type = "SLEEP",
+            detailsJson = details,
+            notes = notes,
+            timestamp = start
+        )
+
+        _sleepTimerStart.value = null
+        prefs.edit().remove("sleep_timer_start").apply()
+    }
+
+    fun cancelSleepTimer() {
+        _sleepTimerStart.value = null
+        prefs.edit().remove("sleep_timer_start").apply()
+    }
+
+    fun updateSleepTimerStart(newStartTime: Long) {
+        _sleepTimerStart.value = newStartTime
+        prefs.edit().putLong("sleep_timer_start", newStartTime).apply()
+    }
+
+    // Core log activity
+    fun logActivity(type: String, detailsJson: String, notes: String, timestamp: Long = System.currentTimeMillis()) {
+        viewModelScope.launch {
+            val activity = BabyActivity(
+                id = UUID.randomUUID().toString(),
+                type = type,
+                babyName = _babyName.value,
+                timestamp = timestamp,
+                detailsJson = detailsJson,
+                notes = notes,
+                updatedAt = System.currentTimeMillis(),
+                isDeleted = false
+            )
+            repository.insertActivity(activity)
+            
+            // Auto-sync after adding if a server is set
+            if (_serverUrl.value.isNotBlank()) {
+                triggerSync()
+            }
+        }
+    }
+
+    fun deleteActivity(id: String) {
+        viewModelScope.launch {
+            repository.softDeleteActivity(id)
+            // Auto-sync deletion
+            if (_serverUrl.value.isNotBlank()) {
+                triggerSync()
+            }
+        }
+    }
+
+    fun updateBabyDob(dob: Long) {
+        _babyDob.value = dob
+        prefs.edit().putLong("baby_dob", dob).apply()
+    }
+
+    fun analyzeSleepPattern() {
+        val dob = _babyDob.value
+        if (dob <= 0L) {
+            _analysisError.value = "Please set your baby's Date of Birth in Settings first."
+            return
+        }
+
+        viewModelScope.launch {
+            _isAnalyzingSleep.value = true
+            _analysisError.value = null
+            try {
+                val name = _babyName.value
+                val diffMs = System.currentTimeMillis() - dob
+                val days = diffMs / (1000 * 60 * 60 * 24)
+                val months = days / 30
+                val weeks = days / 7
+                val ageStr = when {
+                    months > 0 -> "$months months"
+                    weeks > 0 -> "$weeks weeks"
+                    else -> "$days days"
+                }
+
+                val sleepLogsList = activities.value
+                    .filter { it.type == "SLEEP" && !it.isDeleted }
+                    .sortedByDescending { it.timestamp }
+                    .take(20)
+
+                val sleepLogsStr = if (sleepLogsList.isEmpty()) {
+                    "No sleep history recorded yet."
+                } else {
+                    sleepLogsList.joinToString("\n") { log ->
+                        val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(log.timestamp))
+                        val dur = try {
+                            JSONObject(log.detailsJson).optInt("durationMinutes", 0)
+                        } catch (e: Exception) {
+                            0
+                        }
+                        "- Date: $dateStr, Duration: $dur mins, Notes: ${log.notes}"
+                    }
+                }
+
+                val prompt = """
+                    You are a professional pediatric sleep consultant.
+                    Analyze the sleep log for a baby named $name who is $ageStr old.
+                    
+                    Here is their recent sleep log history (newest first):
+                    $sleepLogsStr
+                    
+                    Based on their age of $ageStr and recent sleep patterns:
+                    1. Evaluate if their sleep duration and frequency align with healthy targets for their developmental stage (citing global pediatric nap and wake window standards).
+                    2. Estimate their average "wake window" (awake time between naps) and identify any overtiredness patterns.
+                    3. Formulate clear, actionable recommendations for when they should go down for their next nap(s) or bedtime today.
+                    4. Provide 2-3 specific, practical tips for optimizing their sleeping environment or routine.
+                    
+                    Please structure your response beautifully with Markdown:
+                    - Use bold titles for sections like: **Developmental Sleep Evaluation**, **Estimated Wake Window**, **Next Nap Target & Bedtime**, **Practical Sleep Tips**.
+                    - Keep it clear, friendly, and practical. No verbose introduction.
+                """.trimIndent()
+
+                val request = GeminiRequest(
+                    contents = listOf(
+                        GeminiContent(
+                            parts = listOf(
+                                GeminiPart(text = prompt)
+                            )
+                        )
+                    )
+                )
+
+                val response = GeminiClient.service.generateContent(BuildConfig.GEMINI_API_KEY, request)
+                val responseText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                if (!responseText.isNullOrBlank()) {
+                    _aiRecommendation.value = responseText
+                    prefs.edit().putString("ai_recommendation", responseText).apply()
+                } else {
+                    _analysisError.value = "Gemini didn't return any analysis. Please try again."
+                }
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Failed to analyze sleep pattern", e)
+                _analysisError.value = "Failed to run analysis: ${e.localizedMessage ?: "Unknown error"}"
+            } finally {
+                _isAnalyzingSleep.value = false
+            }
+        }
+    }
+
+    fun triggerSync() {
+        val url = _serverUrl.value
+        if (url.isBlank()) return
+
+        viewModelScope.launch {
+            _isSyncing.value = true
+            _syncError.value = null
+            _syncSuccess.value = false
+            try {
+                val newSyncTime = repository.syncWithServer(url, _lastSyncTime.value)
+                _lastSyncTime.value = newSyncTime
+                prefs.edit().putLong("last_sync_time", newSyncTime).apply()
+                _syncSuccess.value = true
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Sync failed", e)
+                _syncError.value = e.localizedMessage ?: "Connection error. Ensure local server is running."
+            } finally {
+                _isSyncing.value = false
+            }
+        }
+    }
+
+    // Factory for ViewModel
+    companion object {
+        fun provideFactory(application: Application): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return BabyViewModel(application) as T
+            }
+        }
+    }
+}
