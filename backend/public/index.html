@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -30,10 +31,94 @@
         body {
             font-family: 'Quicksand', sans-serif;
             background-color: #fafaf9;
+            transition: background-color 0.2s, color 0.2s;
         }
         h1, h2, h3, .brand-font {
             font-family: 'Fredoka', sans-serif;
         }
+
+        /* Material You 3 Dark Theme Overrides */
+        html.dark body {
+            background-color: #121212 !important;
+            color: #e3e2e6 !important;
+        }
+        html.dark header {
+            background-color: #1c1b1f !important;
+            border-color: #3f3e43 !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+        }
+        html.dark .bg-white {
+            background-color: #1c1b1f !important;
+            color: #e3e2e6 !important;
+            border-color: #3f3e43 !important;
+        }
+        html.dark .border, html.dark .border-stone-100, html.dark .border-sky-100, html.dark .border-stone-200 {
+            border-color: #3f3e43 !important;
+        }
+        html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark label, html.dark td, html.dark th {
+            color: #e3e2e6 !important;
+        }
+        html.dark .text-stone-800, html.dark .text-stone-700, html.dark .text-stone-600, html.dark .text-stone-500 {
+            color: #c7c6ca !important;
+        }
+        html.dark .text-sky-700, html.dark .text-sky-800, html.dark .text-sky-600 {
+            color: #7ecaff !important;
+        }
+        html.dark .bg-sky-50, html.dark .bg-sky-50\/50, html.dark .bg-sky-100 {
+            background-color: #243447 !important;
+            color: #7ecaff !important;
+        }
+        html.dark .bg-emerald-50 {
+            background-color: #0c3823 !important;
+            color: #a3f7bf !important;
+            border-color: #1b5336 !important;
+        }
+        html.dark .text-emerald-700 {
+            color: #a3f7bf !important;
+        }
+        html.dark input, html.dark select, html.dark textarea {
+            background-color: #252429 !important;
+            border-color: #49454f !important;
+            color: #e3e2e6 !important;
+        }
+        html.dark input:read-only {
+            background-color: #151419 !important;
+            color: #8c8a90 !important;
+        }
+        html.dark input::placeholder {
+            color: #8c8a90 !important;
+        }
+        html.dark tr:hover {
+            background-color: #2d2c31 !important;
+        }
+        html.dark .divide-y > :not([hidden]) ~ :not([hidden]) {
+            border-color: #3f3e43 !important;
+        }
+        html.dark .bg-stone-100, html.dark .bg-stone-50 {
+            background-color: #2d2c31 !important;
+            color: #e3e2e6 !important;
+        }
+        html.dark .bg-stone-50\/50 {
+            background-color: #252429 !important;
+        }
+        html.dark .bg-indigo-50 {
+            background-color: #1d2138 !important;
+            color: #b4c2ff !important;
+        }
+        html.dark .bg-purple-50 {
+            background-color: #271a35 !important;
+            color: #e8b4ff !important;
+        }
+        html.dark .bg-amber-50 {
+            background-color: #2a1f0a !important;
+            color: #ffe094 !important;
+        }
+        html.dark .text-indigo-600 { color: #9bb1ff !important; }
+        html.dark .text-purple-600 { color: #de9fff !important; }
+        html.dark .text-amber-600 { color: #f2c75b !important; }
+        html.dark .bg-sky-500 { background-color: #0284c7 !important; }
+        html.dark .bg-stone-900 { background-color: #e3e2e6 !important; color: #121212 !important; }
+        html.dark .bg-stone-900:hover { background-color: #c7c6ca !important; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -55,6 +140,9 @@
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     Local Privacy Core Online
                 </span>
+                <button onclick="toggleDarkTheme()" class="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-xl transition-all shadow-sm" title="Toggle Dark Theme">
+                    <i class="fa-solid fa-moon text-lg" id="dark-theme-icon"></i>
+                </button>
                 <button onclick="fetchData()" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2">
                     <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i> Refresh
                 </button>
@@ -216,6 +304,21 @@
                         <textarea id="form-notes" rows="2" placeholder="Any optional remarks..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm"></textarea>
                     </div>
 
+                    <!-- Time of Activity (Back-dating) -->
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Time of Activity</label>
+                        <select id="form-time-preset" onchange="toggleFormTimeCustom()" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <option value="now">Just Now</option>
+                            <option value="15">15 minutes ago</option>
+                            <option value="30">30 minutes ago</option>
+                            <option value="60">1 hour ago</option>
+                            <option value="custom">Custom Date & Time</option>
+                        </select>
+                        <div id="form-time-custom-container" class="hidden mt-2">
+                            <input type="datetime-local" id="form-time-custom" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
+                        </div>
+                    </div>
+
                     <button type="submit" class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-sm font-bold transition-all shadow-md">
                         Save Log Entry
                     </button>
@@ -304,6 +407,45 @@
 
     <!-- Frontend scripts -->
     <script>
+        // Dark theme state tracking and helper functions
+        function toggleDarkTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('dark-mode', isDark ? 'enabled' : 'disabled');
+            updateDarkThemeUI();
+        }
+
+        function updateDarkThemeUI() {
+            const icon = document.getElementById('dark-theme-icon');
+            if (!icon) return;
+            if (document.documentElement.classList.contains('dark')) {
+                icon.className = 'fa-solid fa-sun text-lg text-yellow-400';
+            } else {
+                icon.className = 'fa-solid fa-moon text-lg';
+            }
+        }
+
+        // Apply dark theme initially if saved
+        if (localStorage.getItem('dark-mode') === 'enabled') {
+            document.documentElement.classList.add('dark');
+        }
+        document.addEventListener('DOMContentLoaded', updateDarkThemeUI);
+
+        function toggleFormTimeCustom() {
+            const preset = document.getElementById('form-time-preset').value;
+            const customContainer = document.getElementById('form-time-custom-container');
+            const customInput = document.getElementById('form-time-custom');
+            if (preset === 'custom') {
+                customContainer.classList.remove('hidden');
+                // Pre-fill local date-time string
+                const now = new Date();
+                const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+                const localISOTime = new Date(now.getTime() - offsetMs).toISOString().slice(0, 16);
+                customInput.value = localISOTime;
+            } else {
+                customContainer.classList.add('hidden');
+            }
+        }
+
         let activities = [];
         let sleepChart = null;
         let distChart = null;
@@ -566,7 +708,19 @@
             const type = document.getElementById('form-type').value;
             const babyNameVal = profileName;
             const notes = document.getElementById('form-notes').value;
-            const timestamp = Date.now();
+            
+            const preset = document.getElementById('form-time-preset').value;
+            let timestamp = Date.now();
+            if (preset === 'custom') {
+                const customVal = document.getElementById('form-time-custom').value;
+                if (customVal) {
+                    timestamp = new Date(customVal).getTime();
+                }
+            } else if (preset !== 'now') {
+                const offset = parseInt(preset);
+                timestamp = Date.now() - (offset * 60 * 1000);
+            }
+
             const id = generateUUID();
 
             let details = {};
@@ -705,7 +859,10 @@
                         <td class="py-3.5 text-stone-800 font-semibold">${detailsText}</td>
                         <td class="py-3.5 text-stone-500 italic max-w-[150px] sm:max-w-xs truncate" title="${a.notes}">${a.notes || '-'}</td>
                         <td class="py-3.5 text-right pr-2">
-                            <button onclick="deleteActivity('${a.id}')" class="text-stone-300 hover:text-red-500 transition-colors p-1">
+                            <button onclick="openEditModal('${a.id}')" class="text-stone-300 hover:text-sky-500 transition-colors p-1 mr-1.5" title="Edit Log">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteActivity('${a.id}')" class="text-stone-300 hover:text-red-500 transition-colors p-1" title="Delete Log">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </td>
@@ -804,6 +961,147 @@
             });
         }
 
+        // Edit Activity Modal management
+        function openEditModal(id) {
+            const act = activities.find(a => a.id === id);
+            if (!act) return;
+
+            document.getElementById('edit-activity-id').value = act.id;
+            document.getElementById('edit-activity-type').value = act.type;
+            document.getElementById('edit-notes').value = act.notes || '';
+
+            // Format date-time for datetime-local input in local time zone
+            const d = new Date(act.timestamp);
+            const offsetMs = d.getTimezoneOffset() * 60 * 1000;
+            const localISOTime = new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+            document.getElementById('edit-timestamp').value = localISOTime;
+
+            // Generate dynamic inputs based on type
+            let fieldsHtml = '';
+            let details = {};
+            try {
+                details = JSON.parse(act.detailsJson) || {};
+            } catch(e) {}
+
+            if (act.type === 'FEEDING') {
+                const method = details.method || 'Bottle';
+                fieldsHtml = `
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Feeding Method</label>
+                        <select id="edit-feed-method" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                            <option value="Bottle" ${method === 'Bottle' ? 'selected' : ''}>Bottle (Formula/Expressed)</option>
+                            <option value="Breast" ${method === 'Breast' ? 'selected' : ''}>Breastfeeding</option>
+                            <option value="Solid" ${method === 'Solid' ? 'selected' : ''}>Solid Food</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Amount</label>
+                            <input type="number" id="edit-feed-amount" value="${details.amount || 120}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Unit</label>
+                            <select id="edit-feed-unit" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                                <option value="ml" ${details.unit === 'ml' ? 'selected' : ''}>ml</option>
+                                <option value="oz" ${details.unit === 'oz' ? 'selected' : ''}>oz</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Duration (minutes)</label>
+                        <input type="number" id="edit-feed-duration" value="${details.durationMinutes || 15}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                    </div>
+                `;
+            } else if (act.type === 'SLEEP') {
+                fieldsHtml = `
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Sleep Duration (minutes)</label>
+                        <input type="number" id="edit-sleep-duration" value="${details.durationMinutes || 60}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                    </div>
+                `;
+            } else if (act.type === 'DIAPER') {
+                const status = details.status || 'Wet';
+                fieldsHtml = `
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Nappy Status</label>
+                        <select id="edit-diaper-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                            <option value="Wet" ${status === 'Wet' ? 'selected' : ''}>Wet</option>
+                            <option value="Dirty" ${status === 'Dirty' ? 'selected' : ''}>Dirty (Poop)</option>
+                            <option value="Both" ${status === 'Both' ? 'selected' : ''}>Wet & Dirty</option>
+                            <option value="Dry" ${status === 'Dry' ? 'selected' : ''}>Dry</option>
+                        </select>
+                    </div>
+                `;
+            }
+
+            document.getElementById('edit-dynamic-fields').innerHTML = fieldsHtml;
+
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function saveEditedActivity() {
+            const id = document.getElementById('edit-activity-id').value;
+            const type = document.getElementById('edit-activity-type').value;
+            const notes = document.getElementById('edit-notes').value;
+            const customTime = document.getElementById('edit-timestamp').value;
+            let timestamp = Date.now();
+            if (customTime) {
+                timestamp = new Date(customTime).getTime();
+            }
+
+            let details = {};
+            if (type === 'FEEDING') {
+                details = {
+                    method: document.getElementById('edit-feed-method').value,
+                    amount: parseFloat(document.getElementById('edit-feed-amount').value),
+                    unit: document.getElementById('edit-feed-unit').value,
+                    durationMinutes: parseInt(document.getElementById('edit-feed-duration').value)
+                };
+            } else if (type === 'SLEEP') {
+                details = {
+                    durationMinutes: parseInt(document.getElementById('edit-sleep-duration').value)
+                };
+            } else if (type === 'DIAPER') {
+                details = {
+                    status: document.getElementById('edit-diaper-status').value
+                };
+            }
+
+            const body = {
+                type,
+                babyName: profileName,
+                timestamp,
+                detailsJson: JSON.stringify(details),
+                notes
+            };
+
+            try {
+                const res = await fetch(`/api/activities/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    closeEditModal();
+                    fetchData();
+                } else {
+                    alert('Failed to save changes.');
+                }
+            } catch (err) {
+                console.error('Error saving edited activity:', err);
+                alert('Connection error. Failed to save changes.');
+            }
+        }
+
         // Initialize Page
         async function init() {
             await fetchProfile();
@@ -812,5 +1110,35 @@
 
         init();
     </script>
+    <!-- Edit Activity Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden items-center justify-center z-[100] p-4">
+        <div class="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 p-6 shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4">
+            <div class="flex items-center justify-between border-b dark:border-stone-800 pb-3">
+                <h2 class="text-lg font-bold text-stone-800 dark:text-white brand-font">Edit Logged Activity</h2>
+                <button onclick="closeEditModal()" class="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <input type="hidden" id="edit-activity-id">
+            <input type="hidden" id="edit-activity-type">
+
+            <div>
+                <label class="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-1">Date & Time</label>
+                <input type="datetime-local" id="edit-timestamp" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20">
+            </div>
+
+            <!-- Dynamic Fields container for editing -->
+            <div id="edit-dynamic-fields" class="space-y-4"></div>
+
+            <div>
+                <label class="block text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-1">Notes</label>
+                <textarea id="edit-notes" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20"></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeEditModal()" class="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                <button onclick="saveEditedActivity()" class="flex-1 py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition-all shadow-md">Save Changes</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

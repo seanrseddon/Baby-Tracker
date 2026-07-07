@@ -20,28 +20,30 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                MainAppNavHost()
+            val application = applicationContext as Application
+            val babyViewModel: BabyViewModel = viewModel(
+                factory = BabyViewModel.provideFactory(application)
+            )
+            val isDarkThemeState by babyViewModel.isDarkTheme.collectAsState()
+
+            MyApplicationTheme(darkTheme = isDarkThemeState) {
+                MainAppNavHost(babyViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MainAppNavHost() {
+fun MainAppNavHost(babyViewModel: BabyViewModel) {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val application = context.applicationContext as Application
-
-    // Retrieve BabyViewModel with factory
-    val babyViewModel: BabyViewModel = viewModel(
-        factory = BabyViewModel.provideFactory(application)
-    )
 
     NavHost(
         navController = navController,

@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.BabyViewModel
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +50,49 @@ fun AddActivityScreen(
 
     // Diaper fields
     var diaperStatus by remember { mutableStateOf("Wet") } // Wet, Dirty, Both, Dry
+
+    var timeOffsetMinutes by remember { mutableStateOf(0) } // 0=Now, 15=15m ago, 30=30m ago, 60=1h ago, -1=Custom
+    var selectedCustomTime by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val customCalendar = remember(selectedCustomTime) {
+        Calendar.getInstance().apply { timeInMillis = selectedCustomTime }
+    }
+
+    val datePickerDialog = remember(selectedCustomTime) {
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selCal = Calendar.getInstance().apply {
+                    timeInMillis = selectedCustomTime
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                }
+                selectedCustomTime = selCal.timeInMillis
+            },
+            customCalendar.get(Calendar.YEAR),
+            customCalendar.get(Calendar.MONTH),
+            customCalendar.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    val timePickerDialog = remember(selectedCustomTime) {
+        android.app.TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                val selCal = Calendar.getInstance().apply {
+                    timeInMillis = selectedCustomTime
+                    set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    set(Calendar.MINUTE, minute)
+                }
+                selectedCustomTime = selCal.timeInMillis
+            },
+            customCalendar.get(Calendar.HOUR_OF_DAY),
+            customCalendar.get(Calendar.MINUTE),
+            false // 12-hour format
+        )
+    }
 
     val scrollState = rememberScrollState()
 
@@ -265,6 +312,71 @@ fun AddActivityScreen(
                         minLines = 2,
                         shape = RoundedCornerShape(12.dp)
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Time of Activity
+                    Text(
+                        text = "Time of Activity",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(0 to "Now", 15 to "15m", 30 to "30m", 60 to "1h", -1 to "Custom").forEach { (offset, label) ->
+                            val isSel = timeOffsetMinutes == offset
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                                    .clickable { timeOffsetMinutes = offset }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    if (timeOffsetMinutes == -1) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val sdfDate = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
+                            val sdfTime = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+
+                            OutlinedButton(
+                                onClick = { datePickerDialog.show() },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(sdfDate.format(Date(selectedCustomTime)), fontSize = 12.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = { timePickerDialog.show() },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(sdfTime.format(Date(selectedCustomTime)), fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -289,10 +401,17 @@ fun AddActivityScreen(
                         }
                     }
 
+                    val finalTimestamp = when (timeOffsetMinutes) {
+                        -1 -> selectedCustomTime
+                        0 -> System.currentTimeMillis()
+                        else -> System.currentTimeMillis() - (timeOffsetMinutes * 60 * 1000L)
+                    }
+
                     viewModel.logActivity(
                         type = selectedType,
                         detailsJson = details.toString(),
-                        notes = notes
+                        notes = notes,
+                        timestamp = finalTimestamp
                     )
 
                     onNavigateBack()

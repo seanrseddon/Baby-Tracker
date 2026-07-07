@@ -7,6 +7,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,6 +55,7 @@ fun DashboardScreen(
     val syncError by viewModel.syncError.collectAsState()
     val sleepTimerStart by viewModel.sleepTimerStart.collectAsState()
     var showAdjustSleepDialog by remember { mutableStateOf(false) }
+    var editingActivity by remember { mutableStateOf<BabyActivity?>(null) }
 
     // Calculate today's stats
     val calendar = Calendar.getInstance().apply {
@@ -622,6 +625,7 @@ fun DashboardScreen(
             items(activities, key = { it.id }) { activity ->
                 ActivityLogCard(
                     activity = activity,
+                    onEdit = { editingActivity = activity },
                     onDelete = { viewModel.deleteActivity(activity.id) }
                 )
             }
@@ -637,6 +641,17 @@ fun DashboardScreen(
             onConfirm = { adjustedTime ->
                 viewModel.updateSleepTimerStart(adjustedTime)
                 showAdjustSleepDialog = false
+            }
+        )
+    }
+
+    if (editingActivity != null) {
+        EditActivityDialog(
+            activity = editingActivity!!,
+            onDismiss = { editingActivity = null },
+            onConfirm = { updated ->
+                viewModel.updateActivity(updated)
+                editingActivity = null
             }
         )
     }
@@ -701,6 +716,7 @@ fun StatCard(
 @Composable
 fun ActivityLogCard(
     activity: BabyActivity,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val formatter = SimpleDateFormat("h:mm a - MMM d", Locale.getDefault())
@@ -826,6 +842,20 @@ fun ActivityLogCard(
                 }
             }
             Spacer(modifier = Modifier.width(8.dp))
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier
+                    .size(32.dp)
+                    .testTag("edit_button_${activity.id}")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier
@@ -1129,5 +1159,276 @@ fun parseBoldText(text: String): androidx.compose.ui.text.AnnotatedString {
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditActivityDialog(
+    activity: BabyActivity,
+    onDismiss: () -> Unit,
+    onConfirm: (BabyActivity) -> Unit
+) {
+    var notes by remember { mutableStateOf(activity.notes) }
+    var timestamp by remember { mutableStateOf(activity.timestamp) }
+
+    val initialDetails = remember(activity.detailsJson) {
+        try {
+            JSONObject(activity.detailsJson)
+        } catch (e: Exception) {
+            JSONObject()
+        }
+    }
+
+    // FEEDING states
+    var feedingMethod by remember { mutableStateOf(initialDetails.optString("method", "Bottle")) }
+    var feedingAmount by remember { mutableStateOf(initialDetails.optDouble("amount", 120.0).toString()) }
+    var feedingUnit by remember { mutableStateOf(initialDetails.optString("unit", "ml")) }
+    var feedingDuration by remember { mutableStateOf(initialDetails.optInt("durationMinutes", 15).toString()) }
+
+    // SLEEP states
+    var sleepDuration by remember { mutableStateOf(initialDetails.optInt("durationMinutes", 60).toString()) }
+
+    // DIAPER states
+    var diaperStatus by remember { mutableStateOf(initialDetails.optString("status", "Wet")) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val customCalendar = remember(timestamp) {
+        Calendar.getInstance().apply { timeInMillis = timestamp }
+    }
+
+    val datePickerDialog = remember(timestamp) {
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selCal = Calendar.getInstance().apply {
+                    timeInMillis = timestamp
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                }
+                timestamp = selCal.timeInMillis
+            },
+            customCalendar.get(Calendar.YEAR),
+            customCalendar.get(Calendar.MONTH),
+            customCalendar.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    val timePickerDialog = remember(timestamp) {
+        android.app.TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                val selCal = Calendar.getInstance().apply {
+                    timeInMillis = timestamp
+                    set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    set(Calendar.MINUTE, minute)
+                }
+                timestamp = selCal.timeInMillis
+            },
+            customCalendar.get(Calendar.HOUR_OF_DAY),
+            customCalendar.get(Calendar.MINUTE),
+            false
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Logged Activity", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Activity Type: ${activity.type}",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = "Adjust Date & Time",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.outline
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val sdfDate = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
+                    val sdfTime = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+
+                    OutlinedButton(
+                        onClick = { datePickerDialog.show() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(sdfDate.format(Date(timestamp)), fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { timePickerDialog.show() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(sdfTime.format(Date(timestamp)), fontSize = 11.sp)
+                    }
+                }
+
+                when (activity.type) {
+                    "FEEDING" -> {
+                        Column {
+                            Text("Method", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("Bottle", "Breast", "Solid").forEach { method ->
+                                    val isSel = feedingMethod == method
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isSel) MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow)
+                                            .clickable { feedingMethod = method }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = method,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSel) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (feedingMethod != "Solid") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = feedingAmount,
+                                    onValueChange = { feedingAmount = it },
+                                    label = { Text("Amount") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.weight(1.5f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+
+                                OutlinedTextField(
+                                    value = feedingUnit,
+                                    onValueChange = { feedingUnit = it },
+                                    label = { Text("Unit") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = feedingDuration,
+                            onValueChange = { feedingDuration = it },
+                            label = { Text("Duration (mins)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                    "SLEEP" -> {
+                        OutlinedTextField(
+                            value = sleepDuration,
+                            onValueChange = { sleepDuration = it },
+                            label = { Text("Duration (mins)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                    "DIAPER" -> {
+                        Column {
+                            Text("Status", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("Wet", "Dirty", "Both", "Dry").forEach { status ->
+                                    val isSel = diaperStatus == status
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isSel) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow)
+                                            .clickable { diaperStatus = status }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = status,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSel) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val finalDetails = JSONObject()
+                    try {
+                        when (activity.type) {
+                            "FEEDING" -> {
+                                finalDetails.put("method", feedingMethod)
+                                finalDetails.put("amount", feedingAmount.toDoubleOrNull() ?: 0.0)
+                                finalDetails.put("unit", feedingUnit)
+                                finalDetails.put("durationMinutes", feedingDuration.toIntOrNull() ?: 15)
+                            }
+                            "SLEEP" -> {
+                                finalDetails.put("durationMinutes", sleepDuration.toIntOrNull() ?: 60)
+                            }
+                            "DIAPER" -> {
+                                finalDetails.put("status", diaperStatus)
+                            }
+                        }
+                    } catch (e: Exception) {}
+
+                    val updated = activity.copy(
+                        timestamp = timestamp,
+                        notes = notes,
+                        detailsJson = finalDetails.toString()
+                    )
+                    onConfirm(updated)
+                }
+            ) {
+                Text("Save Changes")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 

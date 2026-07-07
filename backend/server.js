@@ -188,6 +188,27 @@ app.post('/api/activities', (req, res) => {
     );
 });
 
+// REST API - Update single activity via PUT
+app.put('/api/activities/:id', (req, res) => {
+    const { id } = req.params;
+    const { type, babyName, timestamp, detailsJson, notes } = req.body;
+    if (!type || !babyName || !timestamp || !detailsJson) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const updatedAt = Date.now();
+    db.run(
+        `UPDATE activities SET type = ?, babyName = ?, timestamp = ?, detailsJson = ?, notes = ?, updatedAt = ?, isDeleted = 0 WHERE id = ?`,
+        [type, babyName, timestamp, detailsJson, notes || '', updatedAt, id],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true, id, updatedAt });
+        }
+    );
+});
+
 // REST API - Delete single activity
 app.delete('/api/activities/:id', (req, res) => {
     const { id } = req.params;

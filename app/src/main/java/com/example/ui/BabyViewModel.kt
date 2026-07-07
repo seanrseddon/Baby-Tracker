@@ -60,6 +60,9 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastSyncTime = MutableStateFlow(prefs.getLong("last_sync_time", 0L))
     val lastSyncTime: StateFlow<Long> = _lastSyncTime.asStateFlow()
 
+    private val _isDarkTheme = MutableStateFlow(prefs.getBoolean("is_dark_theme", false))
+    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
     // Sync state
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
@@ -104,6 +107,22 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     fun updateBabyName(name: String) {
         _babyName.value = name
         prefs.edit().putString("baby_name", name).apply()
+    }
+
+    fun updateDarkTheme(enabled: Boolean) {
+        _isDarkTheme.value = enabled
+        prefs.edit().putBoolean("is_dark_theme", enabled).apply()
+    }
+
+    fun updateActivity(activity: BabyActivity) {
+        viewModelScope.launch {
+            repository.insertActivity(activity.copy(updatedAt = System.currentTimeMillis()))
+            
+            // Auto-sync after updating if a server is set
+            if (_serverUrl.value.isNotBlank()) {
+                triggerSync()
+            }
+        }
     }
 
     fun clearSyncTime() {
