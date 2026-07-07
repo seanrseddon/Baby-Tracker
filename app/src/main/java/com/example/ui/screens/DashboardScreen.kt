@@ -755,7 +755,7 @@ fun ActivityLogCard(
                 val details = JSONObject(activity.detailsJson)
                 val method = details.optString("method", "Bottle")
                 val amount = details.optDouble("amount", 0.0)
-                val unit = details.optString("unit", "ml")
+                val unit = details.optString("unit", "oz")
                 val duration = details.optInt("durationMinutes", 0)
                 detailsText = if (method == "Solid") {
                     "Solid feeding ($duration mins)"
@@ -1212,8 +1212,8 @@ fun EditActivityDialog(
 
     // FEEDING states
     var feedingMethod by remember { mutableStateOf(initialDetails.optString("method", "Bottle")) }
-    var feedingAmount by remember { mutableStateOf(initialDetails.optDouble("amount", 120.0).toString()) }
-    var feedingUnit by remember { mutableStateOf(initialDetails.optString("unit", "ml")) }
+    var feedingAmount by remember { mutableStateOf(initialDetails.optDouble("amount", 4.0).toString()) }
+    var feedingUnit by remember { mutableStateOf(initialDetails.optString("unit", "oz")) }
     var feedingDuration by remember { mutableStateOf(initialDetails.optInt("durationMinutes", 15).toString()) }
 
     // SLEEP states

@@ -187,6 +187,47 @@
                 <button onclick="toggleDarkTheme()" class="w-10 h-10 flex items-center justify-center bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full transition-all duration-300" title="Toggle Dark Theme">
                     <i class="fa-solid fa-moon text-lg" id="dark-theme-icon"></i>
                 </button>
+                
+                <!-- Advanced Options Dropdown Menu -->
+                <div class="relative inline-block text-left">
+                    <button type="button" onclick="toggleSettingsDropdown()" class="w-10 h-10 flex items-center justify-center bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full transition-all duration-300 shadow-sm" id="settings-menu-button" title="Advanced Settings">
+                        <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+                    </button>
+
+                    <div id="settings-dropdown" class="origin-top-right absolute right-0 mt-2 w-72 rounded-m3-lg shadow-xl bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] focus:outline-none hidden z-50">
+                        <div class="p-4 space-y-4 text-left">
+                            <div class="border-b border-[#E7E0EC] dark:border-[#49454F] pb-2 flex justify-between items-center">
+                                <span class="text-xs font-bold text-[#625B71] dark:text-[#CCC2DC] uppercase tracking-wider">Advanced Options</span>
+                                <button onclick="toggleSettingsDropdown()" class="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </div>
+
+                            <!-- Gemini API Key Config -->
+                            <div class="space-y-1.5">
+                                <label class="block text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider">Gemini API Key</label>
+                                <div class="flex gap-1.5">
+                                    <input type="password" id="settings-gemini-key" placeholder="Enter custom API Key" class="flex-1 px-3 py-1.5 rounded-full border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-xs bg-transparent text-[#1D1B20] dark:text-[#E6E1E5]">
+                                    <button onclick="saveGeminiKey()" class="px-3 py-1.5 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-[10px] font-bold transition-all shadow-sm">
+                                        Save
+                                    </button>
+                                </div>
+                                <p id="gemini-key-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold"></p>
+                            </div>
+
+                            <hr class="border-[#E7E0EC] dark:border-[#49454F]">
+
+                            <!-- Danger Zone -->
+                            <div class="space-y-2">
+                                <span class="block text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">Danger Zone</span>
+                                <button onclick="eraseAllData(); toggleSettingsDropdown();" class="w-full py-2.5 px-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full text-[11px] font-extrabold transition-all flex items-center justify-center gap-1.5 border border-red-200 dark:border-red-900/50">
+                                    <i class="fa-solid fa-trash-can-arrow-up"></i> Erase All Synced Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button onclick="fetchData()" class="px-5 py-2.5 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2">
                     <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i> Refresh
                 </button>
@@ -237,25 +278,10 @@
 
             <!-- Settings & Utilities Card -->
             <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm space-y-5">
-                <h3 class="text-xs font-bold text-[#625B71] dark:text-[#CCC2DC] uppercase tracking-wider">Settings & Utilities</h3>
+                <h3 class="text-xs font-bold text-[#625B71] dark:text-[#CCC2DC] uppercase tracking-wider">CSV Data Actions</h3>
                 
-                <!-- Gemini Key Config -->
-                <div class="space-y-2">
-                    <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Gemini API Key</label>
-                    <div class="flex gap-2">
-                        <input type="password" id="settings-gemini-key" placeholder="Enter custom API Key" class="flex-1 px-4 py-2.5 rounded-full border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm bg-transparent">
-                        <button onclick="saveGeminiKey()" class="px-5 py-2.5 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1.5 shrink-0">
-                            <i class="fa-solid fa-key"></i> Save
-                        </button>
-                    </div>
-                    <p id="gemini-key-status" class="text-[11px] text-[#2E7D32] dark:text-[#A5D6A7] font-bold"></p>
-                </div>
-
-                <hr class="border-[#E7E0EC] dark:border-[#49454F]">
-
                 <!-- CSV Import/Export -->
                 <div class="space-y-3">
-                    <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">CSV Data Actions</label>
                     <div class="grid grid-cols-2 gap-3">
                         <button onclick="exportToCSV()" class="py-3 px-4 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E7E0EC] dark:border-[#49454F]">
                             <i class="fa-solid fa-file-export text-[#6750A4] dark:text-[#D0BCFF]"></i> Export CSV
@@ -265,16 +291,6 @@
                         </button>
                     </div>
                     <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
-                </div>
-
-                <hr class="border-[#E7E0EC] dark:border-[#49454F]">
-
-                <!-- Danger Zone -->
-                <div class="space-y-3">
-                    <label class="block text-xs font-bold text-red-500 dark:text-red-400 uppercase tracking-wider mb-1">Danger Zone</label>
-                    <button onclick="eraseAllData()" class="w-full py-3 px-4 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm border border-red-200 dark:border-red-900/50">
-                        <i class="fa-solid fa-trash-can-arrow-up"></i> Erase All Synced Data
-                    </button>
                 </div>
             </div>
 
@@ -356,13 +372,13 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Amount</label>
-                                <input type="number" id="feed-amount" value="120" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
+                                <input type="number" id="feed-amount" value="4" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Unit</label>
                                 <select id="feed-unit" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
+                                    <option value="oz" selected>oz</option>
                                     <option value="ml">ml</option>
-                                    <option value="oz">oz</option>
                                 </select>
                             </div>
                         </div>
@@ -1244,6 +1260,8 @@
 
             if (act.type === 'FEEDING') {
                 const method = details.method || 'Bottle';
+                const amount = details.amount || 4;
+                const unit = details.unit || 'oz';
                 fieldsHtml = `
                     <div>
                         <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Feeding Method</label>
@@ -1256,13 +1274,13 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Amount</label>
-                            <input type="number" id="edit-feed-amount" value="${details.amount || 120}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
+                            <input type="number" id="edit-feed-amount" value="${amount}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Unit</label>
                             <select id="edit-feed-unit" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm">
-                                <option value="ml" ${details.unit === 'ml' ? 'selected' : ''}>ml</option>
-                                <option value="oz" ${details.unit === 'oz' ? 'selected' : ''}>oz</option>
+                                <option value="oz" ${unit === 'oz' ? 'selected' : ''}>oz</option>
+                                <option value="ml" ${unit === 'ml' ? 'selected' : ''}>ml</option>
                             </select>
                         </div>
                     </div>
@@ -1401,6 +1419,90 @@
                 status.className = "text-[10px] text-stone-500 font-bold";
             }
             setTimeout(() => { status.innerText = ''; }, 3000);
+        }
+
+        function toggleSettingsDropdown() {
+            const dropdown = document.getElementById('settings-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('settings-dropdown');
+            const button = document.getElementById('settings-menu-button');
+            if (dropdown && button && !dropdown.contains(e.target) && !button.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function parseCSVDate(dateStr) {
+            if (!dateStr) return null;
+            dateStr = dateStr.trim();
+            
+            // Try standard Date.parse first
+            let timestamp = Date.parse(dateStr);
+            if (!isNaN(timestamp)) {
+                return timestamp;
+            }
+
+            // Clean multiple spaces
+            dateStr = dateStr.replace(/\s+/g, ' ');
+
+            // If it's a numeric timestamp
+            if (/^\d+$/.test(dateStr)) {
+                return parseInt(dateStr, 10);
+            }
+
+            // Try manual regex parsing for YYYY-MM-DD HH:MM:SS or YYYY-MM-DD HH:MM
+            let isoMatch = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+            if (isoMatch) {
+                const year = parseInt(isoMatch[1], 10);
+                const month = parseInt(isoMatch[2], 10) - 1; // 0-indexed
+                const day = parseInt(isoMatch[3], 10);
+                const hour = parseInt(isoMatch[4] || "0", 10);
+                const min = parseInt(isoMatch[5] || "0", 10);
+                const sec = parseInt(isoMatch[6] || "0", 10);
+                return new Date(year, month, day, hour, min, sec).getTime();
+            }
+
+            // Support US style: "M/D/YYYY HH:MM:SS" or "M/D/YYYY h:mm a"
+            let usMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})(?:,\s*|\s+)(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\s*(AM|PM))?/i);
+            if (usMatch) {
+                let month = parseInt(usMatch[1], 10) - 1;
+                let day = parseInt(usMatch[2], 10);
+                let year = parseInt(usMatch[3], 10);
+                if (year < 100) year += 2000; // 2-digit year
+                
+                let hour = parseInt(usMatch[4], 10);
+                const min = parseInt(usMatch[5], 10);
+                const sec = parseInt(usMatch[6] || "0", 10);
+                const ampm = usMatch[7];
+                
+                if (ampm) {
+                    if (ampm.toUpperCase() === 'PM' && hour < 12) hour += 12;
+                    if (ampm.toUpperCase() === 'AM' && hour === 12) hour = 0;
+                }
+                
+                // If MM/DD/YYYY has month > 11, swap month and day
+                if (month > 11) {
+                    const temp = month + 1;
+                    month = day - 1;
+                    day = temp;
+                }
+                
+                return new Date(year, month, day, hour, min, sec).getTime();
+            }
+
+            // Fallback: try replacing spaces with T for ISO format
+            let tSeparated = dateStr.replace(' ', 'T');
+            timestamp = Date.parse(tSeparated);
+            if (!isNaN(timestamp)) {
+                return timestamp;
+            }
+
+            return null;
         }
 
         function toggleMinimizeGemini() {
@@ -1573,8 +1675,8 @@
                     // Parse Timestamp
                     let finalTimestamp = Date.now();
                     if (rawStart) {
-                        const parsed = Date.parse(rawStart);
-                        if (!isNaN(parsed)) {
+                        const parsed = parseCSVDate(rawStart);
+                        if (parsed) {
                             finalTimestamp = parsed;
                         }
                     }
@@ -1591,9 +1693,9 @@
                                 durationMin = parseInt(rawDuration, 10) || 60;
                             }
                         } else if (rawEnd && rawStart) {
-                            const startMs = Date.parse(rawStart);
-                            const endMs = Date.parse(rawEnd);
-                            if (!isNaN(startMs) && !isNaN(endMs)) {
+                            const startMs = parseCSVDate(rawStart);
+                            const endMs = parseCSVDate(rawEnd);
+                            if (startMs && endMs) {
                                 durationMin = Math.round((endMs - startMs) / 60000);
                             }
                         }
@@ -1606,10 +1708,10 @@
                         } else if (feedLower.includes("solid") || feedLower.includes("food") || feedLower.includes("puree")) {
                             method = "Solid";
                         }
-                        let amount = parseFloat(rawAmount) || 120;
-                        let unit = rawUnit || "ml";
-                        if (!rawUnit && amount < 15) {
-                            unit = "oz"; // heuristic
+                        let amount = parseFloat(rawAmount) || 4;
+                        let unit = rawUnit || "oz";
+                        if (!rawUnit && amount > 15) {
+                            unit = "ml";
                         }
                         detailsObj = {
                             method: method,

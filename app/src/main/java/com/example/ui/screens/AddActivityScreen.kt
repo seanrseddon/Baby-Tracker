@@ -41,8 +41,8 @@ fun AddActivityScreen(
     
     // Feeding fields
     var feedingMethod by remember { mutableStateOf("Bottle") } // Bottle, Breast, Solid
-    var feedingAmount by remember { mutableStateOf("120") }
-    var feedingUnit by remember { mutableStateOf("ml") } // ml, oz
+    var feedingAmount by remember { mutableStateOf("4") }
+    var feedingUnit by remember { mutableStateOf("oz") } // ml, oz
     var feedingDuration by remember { mutableStateOf("15") }
 
     // Sleep fields

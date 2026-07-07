@@ -494,10 +494,10 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
                         } else if (feedLower.contains("solid") || feedLower.contains("food") || feedLower.contains("puree")) {
                             method = "Solid"
                         }
-                        val amount = rawAmount.toDoubleOrNull() ?: 120.0
-                        var unit = rawUnit.ifEmpty { "ml" }
-                        if (rawUnit.isEmpty() && amount < 15.0) {
-                            unit = "oz"
+                        val amount = rawAmount.toDoubleOrNull() ?: 4.0
+                        var unit = rawUnit.ifEmpty { "oz" }
+                        if (rawUnit.isEmpty() && amount > 15.0) {
+                            unit = "ml"
                         }
                         detailsObj.put("method", method)
                         detailsObj.put("amount", amount)
@@ -546,25 +546,37 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun parseDateTime(dateTimeStr: String): Long? {
+        val clean = dateTimeStr.trim().replace("\\s+".toRegex(), " ")
         val formats = listOf(
-            "M/d/yy, h:mm a",
-            "M/d/yyyy, h:mm a",
             "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
             "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd",
+            "M/d/yy, h:mm:ss a",
+            "M/d/yy, h:mm a",
+            "M/d/yyyy, h:mm:ss a",
+            "M/d/yyyy, h:mm a",
+            "M/d/yy h:mm:ss a",
             "M/d/yy h:mm a",
+            "M/d/yyyy h:mm:ss a",
             "M/d/yyyy h:mm a",
+            "dd/MM/yyyy HH:mm:ss",
             "dd/MM/yyyy HH:mm",
+            "dd/MM/yyyy h:mm:ss a",
             "dd/MM/yyyy h:mm a",
-            "MM/dd/yyyy HH:mm"
+            "MM/dd/yyyy HH:mm:ss",
+            "MM/dd/yyyy HH:mm",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm"
         )
         for (f in formats) {
             try {
                 val sdf = SimpleDateFormat(f, Locale.US)
-                val date = sdf.parse(dateTimeStr.trim())
+                val date = sdf.parse(clean)
                 if (date != null) return date.time
             } catch (e: Exception) {}
         }
-        return dateTimeStr.toLongOrNull()
+        return clean.toLongOrNull()
     }
 
     // Factory for ViewModel
