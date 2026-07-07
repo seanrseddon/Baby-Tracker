@@ -232,18 +232,22 @@
                 <div class="relative z-10">
                     <h2 class="text-2xl font-bold mb-1">Little One's Day</h2>
                     <p class="text-sky-100 text-sm mb-4">A unified view of feedings, sleeps, and changes.</p>
-                    <div class="grid grid-cols-3 gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center">
+                    <div class="grid grid-cols-4 gap-2 bg-white/10 backdrop-blur-md rounded-2xl p-3 text-center">
                         <div>
-                            <div class="text-xs text-sky-200 font-medium">Feedings</div>
-                            <div class="text-lg font-bold brand-font" id="stat-feeds">0</div>
+                            <div class="text-[10px] text-sky-200 font-medium">Feedings</div>
+                            <div class="text-base font-bold brand-font" id="stat-feeds">0</div>
                         </div>
                         <div>
-                            <div class="text-xs text-sky-200 font-medium">Sleep</div>
-                            <div class="text-lg font-bold brand-font" id="stat-sleep">0h</div>
+                            <div class="text-[10px] text-sky-200 font-medium">Sleep</div>
+                            <div class="text-base font-bold brand-font" id="stat-sleep">0h</div>
                         </div>
                         <div>
-                            <div class="text-xs text-sky-200 font-medium">Nappies</div>
-                            <div class="text-lg font-bold brand-font" id="stat-nappies">0</div>
+                            <div class="text-[10px] text-sky-200 font-medium">Nappies</div>
+                            <div class="text-base font-bold brand-font" id="stat-nappies">0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-sky-200 font-medium">Meds</div>
+                            <div class="text-base font-bold brand-font" id="stat-meds">0</div>
                         </div>
                     </div>
                 </div>
@@ -256,7 +260,7 @@
                 </h2>
                 
                 <!-- Type Selector -->
-                <div class="grid grid-cols-3 gap-2 mb-6">
+                <div class="grid grid-cols-4 gap-2 mb-6">
                     <button id="btn-feed" onclick="selectType('FEEDING')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 bg-sky-50/50 text-sky-600 border-sky-100 font-bold">
                         <i class="fa-solid fa-bottle-milk text-lg"></i>
                         <span class="text-xs">Feeding</span>
@@ -268,6 +272,10 @@
                     <button id="btn-nappy" onclick="selectType('NAPPY')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
                         <i class="fa-solid fa-baby-carriage text-lg"></i>
                         <span class="text-xs">Nappy</span>
+                    </button>
+                    <button id="btn-medication" onclick="selectType('MEDICATION')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
+                        <i class="fa-solid fa-pills text-lg text-emerald-500"></i>
+                        <span class="text-xs">Med</span>
                     </button>
                 </div>
 
@@ -328,6 +336,24 @@
                                 <option value="Both">Wet & Dirty</option>
                                 <option value="Dry">Dry</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fields: Medication -->
+                    <div id="fields-medication" class="space-y-3 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Medication Name</label>
+                            <input type="text" id="med-name" placeholder="Calpol, Ibuprofen, Vitamin D..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Dosage</label>
+                                <input type="text" id="med-dosage" placeholder="2.5 ml, 1 drop..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Frequency</label>
+                                <input type="text" id="med-frequency" placeholder="Every 4 hours, daily..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            </div>
                         </div>
                     </div>
 
@@ -512,6 +538,7 @@
                 document.getElementById('fields-feeding').classList.remove('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');
                 document.getElementById('fields-nappy').classList.add('hidden');
+                document.getElementById('fields-medication').classList.add('hidden');
             } else if (type === 'SLEEP') {
                 const b = document.getElementById('btn-sleep');
                 b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
@@ -520,6 +547,7 @@
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.remove('hidden');
                 document.getElementById('fields-nappy').classList.add('hidden');
+                document.getElementById('fields-medication').classList.add('hidden');
             } else if (type === 'NAPPY') {
                 const b = document.getElementById('btn-nappy');
                 b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
@@ -528,6 +556,16 @@
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');
                 document.getElementById('fields-nappy').classList.remove('hidden');
+                document.getElementById('fields-medication').classList.add('hidden');
+            } else if (type === 'MEDICATION') {
+                const b = document.getElementById('btn-medication');
+                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
+                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+
+                document.getElementById('fields-feeding').classList.add('hidden');
+                document.getElementById('fields-sleep').classList.add('hidden');
+                document.getElementById('fields-nappy').classList.add('hidden');
+                document.getElementById('fields-medication').classList.remove('hidden');
             }
         }
 
@@ -789,6 +827,12 @@
                 details = {
                     status: document.getElementById('nappy-status').value
                 };
+            } else if (type === 'MEDICATION') {
+                details = {
+                    name: document.getElementById('med-name').value.trim() || 'Unspecified Medication',
+                    dosage: document.getElementById('med-dosage').value.trim(),
+                    frequency: document.getElementById('med-frequency').value.trim()
+                };
             }
 
             const body = {
@@ -810,6 +854,11 @@
                 if (res.ok) {
                     // Reset form notes
                     document.getElementById('form-notes').value = '';
+                    if (document.getElementById('med-name')) {
+                        document.getElementById('med-name').value = '';
+                        document.getElementById('med-dosage').value = '';
+                        document.getElementById('med-frequency').value = '';
+                    }
                     fetchData();
                 }
             } catch (err) {
@@ -843,7 +892,7 @@
                         </td>
                     </tr>
                 `;
-                updateStats(0, 0, 0);
+                updateStats(0, 0, 0, 0);
                 renderCharts([]);
                 return;
             }
@@ -855,6 +904,7 @@
             let feedCount = 0;
             let sleepMinutes = 0;
             let nappyCount = 0;
+            let medsCount = 0;
 
             let rowsHtml = '';
             activities.forEach(a => {
@@ -882,6 +932,11 @@
                     badgeClass = 'bg-pink-100 text-pink-800';
                     displayType = 'NAPPY';
                     if (a.timestamp >= todayStart.getTime()) nappyCount++;
+                } else if (a.type === 'MEDICATION') {
+                    iconClass = 'fa-solid fa-pills';
+                    badgeClass = 'bg-emerald-100 text-emerald-800';
+                    displayType = 'MEDICATION';
+                    if (a.timestamp >= todayStart.getTime()) medsCount++;
                 }
 
                 let detailsText = '';
@@ -893,6 +948,8 @@
                         detailsText = `Asleep for ${details.durationMinutes || 0} mins`;
                     } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
                         detailsText = `Status: ${details.status || 'Wet'}`;
+                    } else if (a.type === 'MEDICATION') {
+                        detailsText = `${details.name || 'Unspecified'} (${details.dosage || 'No dosage'} - ${details.frequency || 'No frequency'})`;
                     }
                 } catch(e) {
                     detailsText = a.detailsJson;
@@ -921,20 +978,21 @@
             });
 
             tbody.innerHTML = rowsHtml;
-            updateStats(feedCount, (sleepMinutes / 60).toFixed(1), nappyCount);
+            updateStats(feedCount, (sleepMinutes / 60).toFixed(1), nappyCount, medsCount);
             renderCharts(activities);
         }
 
-        function updateStats(feeds, sleepHours, nappies) {
+        function updateStats(feeds, sleepHours, nappies, meds) {
             document.getElementById('stat-feeds').innerText = feeds;
             document.getElementById('stat-sleep').innerText = sleepHours + 'h';
             document.getElementById('stat-nappies').innerText = nappies;
+            document.getElementById('stat-meds').innerText = meds || 0;
         }
 
         function renderCharts(data) {
             // Group sleep by days (last 7 days)
             const days = {};
-            const dist = { FEEDING: 0, SLEEP: 0, NAPPY: 0 };
+            const dist = { FEEDING: 0, SLEEP: 0, NAPPY: 0, MEDICATION: 0 };
 
             // Initialize last 7 days
             for (let i = 6; i >= 0; i--) {
@@ -993,10 +1051,10 @@
             distChart = new Chart(ctxDist, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Feedings', 'Sleep', 'Nappies'],
+                    labels: ['Feedings', 'Sleep', 'Nappies', 'Meds'],
                     datasets: [{
-                        data: [dist.FEEDING, dist.SLEEP, dist.NAPPY],
-                        backgroundColor: ['#0ea5e9', '#6366f1', '#ec4899'],
+                        data: [dist.FEEDING, dist.SLEEP, dist.NAPPY, dist.MEDICATION || 0],
+                        backgroundColor: ['#0ea5e9', '#6366f1', '#ec4899', '#10b981'],
                         borderWidth: 0
                     }]
                 },
@@ -1082,6 +1140,26 @@
                         </select>
                     </div>
                 `;
+            } else if (act.type === 'MEDICATION') {
+                const name = details.name || '';
+                const dosage = details.dosage || '';
+                const frequency = details.frequency || '';
+                fieldsHtml = `
+                    <div>
+                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Medication Name</label>
+                        <input type="text" id="edit-med-name" value="${name}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Dosage</label>
+                            <input type="text" id="edit-med-dosage" value="${dosage}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Frequency</label>
+                            <input type="text" id="edit-med-frequency" value="${frequency}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20">
+                        </div>
+                    </div>
+                `;
             }
 
             document.getElementById('edit-dynamic-fields').innerHTML = fieldsHtml;
@@ -1122,6 +1200,12 @@
             } else if (type === 'DIAPER' || type === 'NAPPY') {
                 details = {
                     status: document.getElementById('edit-nappy-status').value
+                };
+            } else if (type === 'MEDICATION') {
+                details = {
+                    name: document.getElementById('edit-med-name').value.trim() || 'Unspecified Medication',
+                    dosage: document.getElementById('edit-med-dosage').value.trim(),
+                    frequency: document.getElementById('edit-med-frequency').value.trim()
                 };
             }
 
@@ -1283,6 +1367,7 @@
                     if (!act.detailsJson) {
                         if (act.type === 'FEEDING') act.detailsJson = JSON.stringify({ method: 'Bottle', amount: 120, unit: 'ml', durationMinutes: 15 });
                         else if (act.type === 'SLEEP') act.detailsJson = JSON.stringify({ durationMinutes: 60 });
+                        else if (act.type === 'MEDICATION') act.detailsJson = JSON.stringify({ name: 'Calpol', dosage: '2.5ml', frequency: 'Once' });
                         else act.detailsJson = JSON.stringify({ status: 'Wet' });
                     }
 

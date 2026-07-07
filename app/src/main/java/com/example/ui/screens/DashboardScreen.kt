@@ -69,6 +69,7 @@ fun DashboardScreen(
 
     val feedingCount = todayActivities.count { it.type == "FEEDING" }
     val diaperCount = todayActivities.count { it.type == "DIAPER" || it.type == "NAPPY" }
+    val medicationCount = todayActivities.count { it.type == "MEDICATION" }
     
     val totalSleepMinutes = todayActivities.filter { it.type == "SLEEP" }.sumOf {
         try {
@@ -193,34 +194,49 @@ fun DashboardScreen(
 
             // Quick Baby Status / Stat Row
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        title = "Feedings",
-                        value = feedingCount.toString(),
-                        sub = "entries today",
-                        icon = Icons.Default.Restaurant,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        title = "Sleep",
-                        value = "${sleepHoursText}h",
-                        sub = "slept today",
-                        icon = Icons.Default.NightsStay,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        title = "Nappies",
-                        value = diaperCount.toString(),
-                        sub = "changes today",
-                        icon = Icons.Default.Opacity,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.weight(1f)
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StatCard(
+                            title = "Feedings",
+                            value = feedingCount.toString(),
+                            sub = "entries today",
+                            icon = Icons.Default.Restaurant,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            title = "Sleep",
+                            value = "${sleepHoursText}h",
+                            sub = "slept today",
+                            icon = Icons.Default.NightsStay,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StatCard(
+                            title = "Nappies",
+                            value = diaperCount.toString(),
+                            sub = "changes today",
+                            icon = Icons.Default.Opacity,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            title = "Meds",
+                            value = medicationCount.toString(),
+                            sub = "given today",
+                            icon = Icons.Default.MedicalServices,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -727,6 +743,7 @@ fun ActivityLogCard(
         "FEEDING" -> MaterialTheme.colorScheme.secondary
         "SLEEP" -> MaterialTheme.colorScheme.primary
         "DIAPER", "NAPPY" -> MaterialTheme.colorScheme.tertiary
+        "MEDICATION" -> Color(0xFF10B981)
         else -> MaterialTheme.colorScheme.outline
     }
     var detailsText = ""
@@ -767,6 +784,20 @@ fun ActivityLogCard(
                 detailsText = "Nappy change: $status"
             } catch (e: Exception) {
                 detailsText = "Nappy activity"
+            }
+        }
+        "MEDICATION" -> {
+            icon = Icons.Default.MedicalServices
+            try {
+                val details = JSONObject(activity.detailsJson)
+                val name = details.optString("name", "Unspecified")
+                val dosage = details.optString("dosage", "")
+                val frequency = details.optString("frequency", "")
+                val dosePart = if (dosage.isNotBlank()) " - $dosage" else ""
+                val freqPart = if (frequency.isNotBlank()) " ($frequency)" else ""
+                detailsText = "$name$dosePart$freqPart"
+            } catch (e: Exception) {
+                detailsText = "Medication log"
             }
         }
     }
@@ -1191,6 +1222,11 @@ fun EditActivityDialog(
     // NAPPY states
     var nappyStatus by remember { mutableStateOf(initialDetails.optString("status", "Wet")) }
 
+    // MEDICATION states
+    var medName by remember { mutableStateOf(initialDetails.optString("name", "")) }
+    var medDosage by remember { mutableStateOf(initialDetails.optString("dosage", "")) }
+    var medFrequency by remember { mutableStateOf(initialDetails.optString("frequency", "")) }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     val customCalendar = remember(timestamp) {
         Calendar.getInstance().apply { timeInMillis = timestamp }
@@ -1381,6 +1417,36 @@ fun EditActivityDialog(
                             }
                         }
                     }
+                    "MEDICATION" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = medName,
+                                onValueChange = { medName = it },
+                                label = { Text("Medication Name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = medDosage,
+                                    onValueChange = { medDosage = it },
+                                    label = { Text("Dosage") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                OutlinedTextField(
+                                    value = medFrequency,
+                                    onValueChange = { medFrequency = it },
+                                    label = { Text("Frequency") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+                    }
                 }
 
                 OutlinedTextField(
@@ -1409,6 +1475,11 @@ fun EditActivityDialog(
                             }
                             "DIAPER", "NAPPY" -> {
                                 finalDetails.put("status", nappyStatus)
+                            }
+                            "MEDICATION" -> {
+                                finalDetails.put("name", medName.trim().ifEmpty { "Unspecified Medication" })
+                                finalDetails.put("dosage", medDosage.trim())
+                                finalDetails.put("frequency", medFrequency.trim())
                             }
                         }
                     } catch (e: Exception) {}

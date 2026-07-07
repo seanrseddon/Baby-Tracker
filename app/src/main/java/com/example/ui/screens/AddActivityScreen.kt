@@ -51,6 +51,11 @@ fun AddActivityScreen(
     // Nappy fields
     var nappyStatus by remember { mutableStateOf("Wet") } // Wet, Dirty, Both, Dry
 
+    // Medication fields
+    var medName by remember { mutableStateOf("") }
+    var medDosage by remember { mutableStateOf("") }
+    var medFrequency by remember { mutableStateOf("") }
+
     var timeOffsetMinutes by remember { mutableStateOf(0) } // 0=Now, 15=15m ago, 30=30m ago, 60=1h ago, -1=Custom
     var selectedCustomTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -161,6 +166,14 @@ fun AddActivityScreen(
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
                     onClick = { selectedType = "NAPPY" }
+                )
+                TypeTabButton(
+                    label = "Meds",
+                    isSelected = selectedType == "MEDICATION",
+                    icon = Icons.Default.MedicalServices,
+                    color = Color(0xFF10B981),
+                    modifier = Modifier.weight(1f),
+                    onClick = { selectedType = "MEDICATION" }
                 )
             }
 
@@ -301,6 +314,38 @@ fun AddActivityScreen(
                                 }
                             }
                         }
+
+                        "MEDICATION" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Medication Details", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+                                OutlinedTextField(
+                                    value = medName,
+                                    onValueChange = { medName = it },
+                                    label = { Text("Medication Name (e.g. Calpol, Vitamin D)") },
+                                    modifier = Modifier.fillMaxWidth().testTag("med_name_input"),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = medDosage,
+                                        onValueChange = { medDosage = it },
+                                        label = { Text("Dosage") },
+                                        modifier = Modifier.weight(1f).testTag("med_dosage_input"),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    OutlinedTextField(
+                                        value = medFrequency,
+                                        onValueChange = { medFrequency = it },
+                                        label = { Text("Frequency") },
+                                        modifier = Modifier.weight(1f).testTag("med_frequency_input"),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     // Notes (Common)
@@ -399,6 +444,11 @@ fun AddActivityScreen(
                         "NAPPY" -> {
                             details.put("status", nappyStatus)
                         }
+                        "MEDICATION" -> {
+                            details.put("name", medName.trim().ifEmpty { "Unspecified Medication" })
+                            details.put("dosage", medDosage.trim())
+                            details.put("frequency", medFrequency.trim())
+                        }
                     }
 
                     val finalTimestamp = when (timeOffsetMinutes) {
@@ -425,6 +475,7 @@ fun AddActivityScreen(
                     containerColor = when (selectedType) {
                         "FEEDING" -> MaterialTheme.colorScheme.secondary
                         "SLEEP" -> MaterialTheme.colorScheme.primary
+                        "MEDICATION" -> Color(0xFF10B981)
                         else -> MaterialTheme.colorScheme.tertiary
                     }
                 )
