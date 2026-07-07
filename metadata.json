@@ -1,5 +1,5 @@
 {
-  "name": "Baby Tracker",
+  "name": "Xadey-Bum",
   "description": "A local real-time synced baby activities tracker for feedings, sleep, and diapers, complete with Unraid self-hosted support.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

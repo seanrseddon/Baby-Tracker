@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Baby Tracker - Shared Local Dashboard</title>
+    <title>Xadey-Bum - Shared Local Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for beautiful visualization -->
@@ -16,134 +16,178 @@
             theme: {
                 extend: {
                     colors: {
-                        babyBlue: '#e0f2fe',
-                        babyPink: '#fce7f3',
-                        babyYellow: '#fef9c3',
-                        brandPrimary: '#0ea5e9',
-                        brandAccent: '#ec4899',
+                        m3Primary: {
+                            light: '#6750A4',
+                            DEFAULT: '#6750A4',
+                            dark: '#D0BCFF'
+                        },
+                        m3PrimaryContainer: {
+                            light: '#EADDFF',
+                            DEFAULT: '#EADDFF',
+                            dark: '#4F378B'
+                        },
+                        m3Secondary: {
+                            light: '#625B71',
+                            DEFAULT: '#625B71',
+                            dark: '#CCC2DC'
+                        },
+                        m3SecondaryContainer: {
+                            light: '#E8DEF8',
+                            DEFAULT: '#E8DEF8',
+                            dark: '#4A4458'
+                        },
+                        m3Tertiary: {
+                            light: '#7D5260',
+                            DEFAULT: '#7D5260',
+                            dark: '#EFB8C8'
+                        },
+                        m3TertiaryContainer: {
+                            light: '#FFD8E4',
+                            DEFAULT: '#FFD8E4',
+                            dark: '#633B48'
+                        },
+                        m3Surface: {
+                            light: '#FEF7FF',
+                            DEFAULT: '#FEF7FF',
+                            dark: '#141218'
+                        },
+                        m3SurfaceVariant: {
+                            light: '#E7E0EC',
+                            DEFAULT: '#E7E0EC',
+                            dark: '#49454F'
+                        },
+                        m3SurfaceContainer: {
+                            light: '#F3EDF7',
+                            DEFAULT: '#F3EDF7',
+                            dark: '#211F26'
+                        },
+                        m3SurfaceContainerHigh: {
+                            light: '#ECE6F0',
+                            DEFAULT: '#ECE6F0',
+                            dark: '#2B2930'
+                        },
+                        m3Outline: {
+                            light: '#79747E',
+                            DEFAULT: '#79747E',
+                            dark: '#938F99'
+                        },
+                        m3OutlineVariant: {
+                            light: '#CAC4D0',
+                            DEFAULT: '#CAC4D0',
+                            dark: '#49454F'
+                        }
+                    },
+                    borderRadius: {
+                        'm3-xs': '4px',
+                        'm3-sm': '8px',
+                        'm3-md': '12px',
+                        'm3-lg': '16px',
+                        'm3-xl': '24px',
+                        'm3-xxl': '28px',
+                        'm3-full': '9999px',
                     }
                 }
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@300..700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300..800&family=Plus+Jakarta+Sans:wght@300..800&display=swap');
+        
         body {
-            font-family: 'Quicksand', sans-serif;
-            background-color: #fafaf9;
-            transition: background-color 0.2s, color 0.2s;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #FEF7FF;
+            color: #1D1B20;
+            transition: background-color 0.3s, color 0.3s;
         }
-        h1, h2, h3, .brand-font {
-            font-family: 'Fredoka', sans-serif;
+        
+        h1, h2, h3, h4, .m3-display {
+            font-family: 'Outfit', sans-serif;
         }
 
-        /* Material You 3 Dark Theme Overrides */
+        /* Smooth scrollbar for custom elements */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(103, 80, 164, 0.2);
+            border-radius: 9999px;
+        }
+        html.dark ::-webkit-scrollbar-thumb {
+            background: rgba(208, 188, 255, 0.2);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(103, 80, 164, 0.4);
+        }
+
+        /* Material You 3 Custom Elevations and Dark Mode Override rules */
         html.dark body {
-            background-color: #121212 !important;
-            color: #e3e2e6 !important;
+            background-color: #141218 !important;
+            color: #E6E1E5 !important;
         }
-        html.dark header {
-            background-color: #1c1b1f !important;
-            border-color: #3f3e43 !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
-        }
+        
+        /* Dark mode generic tag overrides */
         html.dark .bg-white {
-            background-color: #1c1b1f !important;
-            color: #e3e2e6 !important;
-            border-color: #3f3e43 !important;
+            background-color: #211F26 !important;
+            color: #E6E1E5 !important;
+            border-color: #49454F !important;
         }
-        html.dark .border, html.dark .border-stone-100, html.dark .border-sky-100, html.dark .border-stone-200 {
-            border-color: #3f3e43 !important;
+        
+        html.dark .border-stone-100, html.dark .border-sky-100, html.dark .border-stone-200, html.dark .border {
+            border-color: #49454F !important;
         }
-        html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark label, html.dark td, html.dark th {
-            color: #e3e2e6 !important;
-        }
+
         html.dark .text-stone-800, html.dark .text-stone-700, html.dark .text-stone-600, html.dark .text-stone-500 {
-            color: #c7c6ca !important;
+            color: #CAC4D0 !important;
         }
-        html.dark .text-sky-700, html.dark .text-sky-800, html.dark .text-sky-600 {
-            color: #7ecaff !important;
-        }
-        html.dark .bg-sky-50, html.dark .bg-sky-50\/50, html.dark .bg-sky-100 {
-            background-color: #243447 !important;
-            color: #7ecaff !important;
-        }
-        html.dark .bg-emerald-50 {
-            background-color: #0c3823 !important;
-            color: #a3f7bf !important;
-            border-color: #1b5336 !important;
-        }
-        html.dark .text-emerald-700 {
-            color: #a3f7bf !important;
-        }
+
         html.dark input, html.dark select, html.dark textarea {
-            background-color: #252429 !important;
-            border-color: #49454f !important;
-            color: #e3e2e6 !important;
+            background-color: #2B2930 !important;
+            border-color: #49454F !important;
+            color: #E6E1E5 !important;
         }
+        
+        html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
+            border-color: #D0BCFF !important;
+            --tw-ring-color: rgba(208, 188, 255, 0.2);
+        }
+
         html.dark input:read-only {
-            background-color: #151419 !important;
-            color: #8c8a90 !important;
+            background-color: #1D1B20 !important;
+            color: #8C8A90 !important;
         }
-        html.dark input::placeholder {
-            color: #8c8a90 !important;
-        }
+
         html.dark tr:hover {
-            background-color: #2d2c31 !important;
+            background-color: #2B2930 !important;
         }
-        html.dark .divide-y > :not([hidden]) ~ :not([hidden]) {
-            border-color: #3f3e43 !important;
-        }
-        html.dark .bg-stone-100, html.dark .bg-stone-50 {
-            background-color: #2d2c31 !important;
-            color: #e3e2e6 !important;
-        }
-        html.dark .bg-stone-50\/50 {
-            background-color: #252429 !important;
-        }
-        html.dark .bg-indigo-50 {
-            background-color: #1d2138 !important;
-            color: #b4c2ff !important;
-        }
-        html.dark .bg-purple-50 {
-            background-color: #271a35 !important;
-            color: #e8b4ff !important;
-        }
-        html.dark .bg-amber-50 {
-            background-color: #2a1f0a !important;
-            color: #ffe094 !important;
-        }
-        html.dark .text-indigo-600 { color: #9bb1ff !important; }
-        html.dark .text-purple-600 { color: #de9fff !important; }
-        html.dark .text-amber-600 { color: #f2c75b !important; }
-        html.dark .bg-sky-500 { background-color: #0284c7 !important; }
-        html.dark .bg-stone-900 { background-color: #e3e2e6 !important; color: #121212 !important; }
-        html.dark .bg-stone-900:hover { background-color: #c7c6ca !important; }
     </style>
 </head>
-<body class="min-h-screen pb-12">
+<body class="min-h-screen pb-12 bg-[#FEF7FF] dark:bg-[#141218]">
     <!-- Header banner -->
-    <header class="bg-white border-b border-sky-100 shadow-sm sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 text-2xl shadow-inner">
-                    <i class="fa-solid fa-baby"></i>
+    <header class="bg-white dark:bg-[#211F26] border-b border-[#E7E0EC] dark:border-[#49454F] shadow-sm sticky top-0 z-50 backdrop-blur-md bg-white/95 dark:bg-[#211F26]/95">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 bg-[#EADDFF] dark:bg-[#4F378B] rounded-full flex items-center justify-center text-[#21005D] dark:text-[#EADDFF] text-2xl shadow-inner">
+                    <i class="fa-solid fa-baby animate-bounce"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-sky-700 leading-tight">Baby Tracker</h1>
-                    <p class="text-xs text-sky-500 font-semibold uppercase tracking-wider">Shared Local Dashboard</p>
+                    <h1 class="text-2xl font-extrabold text-[#6750A4] dark:text-[#D0BCFF] leading-tight tracking-tight">Xadey-Bum</h1>
+                    <p class="text-[10px] text-[#625B71] dark:text-[#CCC2DC] font-bold uppercase tracking-widest">Shared Local Dashboard</p>
                 </div>
             </div>
             
-            <div class="flex items-center gap-4">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Local Privacy Core Online
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#A5D6A7] border border-[#C8E6C9] dark:border-[#1B5E20]/50">
+                    <span class="w-2 h-2 rounded-full bg-[#4CAF50] animate-pulse"></span>
+                    Privacy Core Active
                 </span>
-                <button onclick="toggleDarkTheme()" class="w-10 h-10 flex items-center justify-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 rounded-xl transition-all shadow-sm" title="Toggle Dark Theme">
+                <button onclick="toggleDarkTheme()" class="w-10 h-10 flex items-center justify-center bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full transition-all duration-300" title="Toggle Dark Theme">
                     <i class="fa-solid fa-moon text-lg" id="dark-theme-icon"></i>
                 </button>
-                <button onclick="fetchData()" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                <button onclick="fetchData()" class="px-5 py-2.5 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2">
                     <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i> Refresh
                 </button>
             </div>
@@ -156,68 +200,68 @@
         <div class="lg:col-span-1 space-y-6">
             
             <!-- Baby Profile Card -->
-            <div class="bg-white rounded-3xl border border-stone-100 p-5 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider">Baby Profile</h3>
-                    <button onclick="toggleProfileEdit()" class="text-sky-500 hover:text-sky-600 text-xs font-bold flex items-center gap-1">
+            <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-bold text-[#625B71] dark:text-[#CCC2DC] uppercase tracking-wider">Baby Profile</h3>
+                    <button onclick="toggleProfileEdit()" class="text-[#6750A4] hover:text-[#5D4797] dark:text-[#D0BCFF] dark:hover:text-[#BC9EFF] text-xs font-bold flex items-center gap-1.5 transition-colors">
                         <i class="fa-solid fa-pen-to-square"></i> <span id="profile-btn-text">Edit</span>
                     </button>
                 </div>
                 
                 <!-- View Mode -->
-                <div id="profile-view" class="flex items-center gap-3.5">
-                    <div class="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-500 text-2xl border border-sky-100">
+                <div id="profile-view" class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-[#E8DEF8] dark:bg-[#4A4458] rounded-full flex items-center justify-center text-[#6750A4] dark:text-[#D0BCFF] text-2xl border border-[#CAC4D0] dark:border-[#49454F]">
                         <i class="fa-solid fa-child"></i>
                     </div>
                     <div>
-                        <h2 class="text-lg font-bold text-stone-800 leading-tight" id="profile-name-display">Baby</h2>
-                        <p class="text-xs text-stone-500 font-medium" id="profile-age-display">Age not configured</p>
+                        <h2 class="text-xl font-black text-[#1D1B20] dark:text-[#E6E1E5] leading-tight" id="profile-name-display">Baby</h2>
+                        <p class="text-xs text-[#625B71] dark:text-[#CCC2DC] font-semibold mt-0.5" id="profile-age-display">Age not configured</p>
                     </div>
                 </div>
                 
                 <!-- Edit Mode (hidden by default) -->
-                <div id="profile-edit" class="hidden mt-4 space-y-3.5 border-t border-stone-50 pt-4">
+                <div id="profile-edit" class="hidden mt-4 space-y-4 border-t border-[#E7E0EC] dark:border-[#49454F] pt-4">
                     <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Name</label>
-                        <input type="text" id="edit-baby-name" placeholder="Baby Name" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                        <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Name</label>
+                        <input type="text" id="edit-baby-name" placeholder="Baby Name" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Date of Birth</label>
-                        <input type="date" id="edit-baby-dob" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                        <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Date of Birth</label>
+                        <input type="date" id="edit-baby-dob" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm transition-all">
                     </div>
-                    <button onclick="saveProfile()" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+                    <button onclick="saveProfile()" class="w-full py-3 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-xs font-bold transition-all shadow-md">
                         Save Profile Settings
                     </button>
                 </div>
             </div>
 
             <!-- Settings & Utilities Card -->
-            <div class="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 p-5 shadow-sm space-y-4">
-                <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider">Settings & Utilities</h3>
+            <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm space-y-5">
+                <h3 class="text-xs font-bold text-[#625B71] dark:text-[#CCC2DC] uppercase tracking-wider">Settings & Utilities</h3>
                 
                 <!-- Gemini Key Config -->
-                <div class="space-y-1.5">
-                    <label class="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1">Gemini API Key</label>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Gemini API Key</label>
                     <div class="flex gap-2">
-                        <input type="password" id="settings-gemini-key" placeholder="Enter custom API Key" class="flex-1 px-3 py-2 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-xs">
-                        <button onclick="saveGeminiKey()" class="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 shrink-0">
+                        <input type="password" id="settings-gemini-key" placeholder="Enter custom API Key" class="flex-1 px-4 py-2.5 rounded-full border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm bg-transparent">
+                        <button onclick="saveGeminiKey()" class="px-5 py-2.5 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-xs font-bold transition-all shadow-md flex items-center gap-1.5 shrink-0">
                             <i class="fa-solid fa-key"></i> Save
                         </button>
                     </div>
-                    <p id="gemini-key-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold"></p>
+                    <p id="gemini-key-status" class="text-[11px] text-[#2E7D32] dark:text-[#A5D6A7] font-bold"></p>
                 </div>
 
-                <hr class="border-stone-100 dark:border-stone-800">
+                <hr class="border-[#E7E0EC] dark:border-[#49454F]">
 
                 <!-- CSV Import/Export -->
-                <div class="space-y-2">
-                    <label class="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1">CSV Data Actions</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="exportToCSV()" class="py-2.5 px-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-file-export text-sky-500"></i> Export CSV
+                <div class="space-y-3">
+                    <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">CSV Data Actions</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="exportToCSV()" class="py-3 px-4 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E7E0EC] dark:border-[#49454F]">
+                            <i class="fa-solid fa-file-export text-[#6750A4] dark:text-[#D0BCFF]"></i> Export CSV
                         </button>
-                        <button onclick="triggerCSVImport()" class="py-2.5 px-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-file-import text-pink-500"></i> Import CSV
+                        <button onclick="triggerCSVImport()" class="py-3 px-4 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E7E0EC] dark:border-[#49454F]">
+                            <i class="fa-solid fa-file-import text-[#7D5260] dark:text-[#EFB8C8]"></i> Import CSV
                         </button>
                     </div>
                     <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
@@ -225,56 +269,56 @@
             </div>
 
             <!-- Stats & Quick Info -->
-            <div class="bg-gradient-to-br from-sky-400 to-sky-500 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
-                <div class="absolute -right-8 -bottom-8 text-white/10 text-9xl">
+            <div class="bg-gradient-to-br from-[#6750A4] to-[#4F378B] dark:from-[#381E72] dark:to-[#21005D] text-white rounded-m3-xxl p-6 shadow-md relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 text-white/5 text-9xl">
                     <i class="fa-solid fa-baby-carriage"></i>
                 </div>
                 <div class="relative z-10">
-                    <h2 class="text-2xl font-bold mb-1">Little One's Day</h2>
-                    <p class="text-sky-100 text-sm mb-4">A unified view of feedings, sleeps, and changes.</p>
-                    <div class="grid grid-cols-4 gap-2 bg-white/10 backdrop-blur-md rounded-2xl p-3 text-center">
+                    <h2 class="text-2xl font-black mb-1">Little One's Day</h2>
+                    <p class="text-[#EADDFF] text-xs mb-4 font-semibold uppercase tracking-wider">Unified Shared Tracker</p>
+                    <div class="grid grid-cols-4 gap-2 bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-m3-xl p-3.5 text-center border border-white/10">
                         <div>
-                            <div class="text-[10px] text-sky-200 font-medium">Feedings</div>
-                            <div class="text-base font-bold brand-font" id="stat-feeds">0</div>
+                            <div class="text-[10px] text-[#EADDFF] font-bold uppercase tracking-wider">Feedings</div>
+                            <div class="text-lg font-black text-white mt-1" id="stat-feeds">0</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-sky-200 font-medium">Sleep</div>
-                            <div class="text-base font-bold brand-font" id="stat-sleep">0h</div>
+                            <div class="text-[10px] text-[#EADDFF] font-bold uppercase tracking-wider">Sleep</div>
+                            <div class="text-lg font-black text-white mt-1" id="stat-sleep">0h</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-sky-200 font-medium">Nappies</div>
-                            <div class="text-base font-bold brand-font" id="stat-nappies">0</div>
+                            <div class="text-[10px] text-[#EADDFF] font-bold uppercase tracking-wider">Nappies</div>
+                            <div class="text-lg font-black text-white mt-1" id="stat-nappies">0</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-sky-200 font-medium">Meds</div>
-                            <div class="text-base font-bold brand-font" id="stat-meds">0</div>
+                            <div class="text-[10px] text-[#EADDFF] font-bold uppercase tracking-wider">Meds</div>
+                            <div class="text-lg font-black text-white mt-1" id="stat-meds">0</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Quick Add Log -->
-            <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
-                <h2 class="text-xl font-bold text-stone-800 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-plus text-pink-500"></i> Record Activity
+            <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm">
+                <h2 class="text-xl font-extrabold text-[#1D1B20] dark:text-[#E6E1E5] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-[#7D5260] dark:text-[#EFB8C8]"></i> Record Activity
                 </h2>
                 
                 <!-- Type Selector -->
                 <div class="grid grid-cols-4 gap-2 mb-6">
-                    <button id="btn-feed" onclick="selectType('FEEDING')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 bg-sky-50/50 text-sky-600 border-sky-100 font-bold">
+                    <button id="btn-feed" onclick="selectType('FEEDING')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] bg-[#EADDFF]/50 text-[#21005D] border-[#6750A4] font-bold">
                         <i class="fa-solid fa-bottle-milk text-lg"></i>
                         <span class="text-xs">Feeding</span>
                     </button>
-                    <button id="btn-sleep" onclick="selectType('SLEEP')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
+                    <button id="btn-sleep" onclick="selectType('SLEEP')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold">
                         <i class="fa-solid fa-moon text-lg"></i>
                         <span class="text-xs">Sleep</span>
                     </button>
-                    <button id="btn-nappy" onclick="selectType('NAPPY')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
+                    <button id="btn-nappy" onclick="selectType('NAPPY')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold">
                         <i class="fa-solid fa-baby-carriage text-lg"></i>
                         <span class="text-xs">Nappy</span>
                     </button>
-                    <button id="btn-medication" onclick="selectType('MEDICATION')" class="type-btn py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all border border-stone-100 hover:bg-stone-50 text-stone-600 font-semibold">
-                        <i class="fa-solid fa-pills text-lg text-emerald-500"></i>
+                    <button id="btn-medication" onclick="selectType('MEDICATION')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold">
+                        <i class="fa-solid fa-pills text-lg text-[#2E7D32]"></i>
                         <span class="text-xs">Med</span>
                     </button>
                 </div>
@@ -285,15 +329,15 @@
                     
                     <!-- Common fields -->
                     <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Baby Name</label>
-                        <input type="text" id="form-baby" value="Baby" required class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm bg-stone-50" readonly>
+                        <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Baby Name</label>
+                        <input type="text" id="form-baby" value="Baby" required class="w-full px-4 py-3 rounded-m3-md border border-[#CAC4D0] dark:border-[#49454F] text-[#1D1B20] dark:text-[#E6E1E5] text-sm bg-[#F3EDF7] dark:bg-[#2B2930]" readonly>
                     </div>
 
                     <!-- Dynamic Fields: Feeding -->
                     <div id="fields-feeding" class="space-y-3">
                         <div>
-                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Feeding Method</label>
-                            <select id="feed-method" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Feeding Method</label>
+                            <select id="feed-method" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                                 <option value="Bottle">Bottle (Formula/Expressed)</option>
                                 <option value="Breast">Breastfeeding</option>
                                 <option value="Solid">Solid Food</option>
@@ -301,36 +345,36 @@
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Amount</label>
-                                <input type="number" id="feed-amount" value="120" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Amount</label>
+                                <input type="number" id="feed-amount" value="120" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Unit</label>
-                                <select id="feed-unit" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Unit</label>
+                                <select id="feed-unit" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                                     <option value="ml">ml</option>
                                     <option value="oz">oz</option>
                                 </select>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Duration (minutes)</label>
-                            <input type="number" id="feed-duration" value="15" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Duration (minutes)</label>
+                            <input type="number" id="feed-duration" value="15" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                         </div>
                     </div>
 
                     <!-- Dynamic Fields: Sleep -->
                     <div id="fields-sleep" class="space-y-3 hidden">
                         <div>
-                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Sleep Duration (minutes)</label>
-                            <input type="number" id="sleep-duration" value="60" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Sleep Duration (minutes)</label>
+                            <input type="number" id="sleep-duration" value="60" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                         </div>
                     </div>
 
                     <!-- Dynamic Fields: Nappy -->
                     <div id="fields-nappy" class="space-y-3 hidden">
                         <div>
-                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Nappy Status</label>
-                            <select id="nappy-status" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Nappy Status</label>
+                            <select id="nappy-status" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                                 <option value="Wet">Wet</option>
                                 <option value="Dirty">Dirty (Poop)</option>
                                 <option value="Both">Wet & Dirty</option>
@@ -342,31 +386,31 @@
                     <!-- Dynamic Fields: Medication -->
                     <div id="fields-medication" class="space-y-3 hidden">
                         <div>
-                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Medication Name</label>
-                            <input type="text" id="med-name" placeholder="Calpol, Ibuprofen, Vitamin D..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                            <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Medication Name</label>
+                            <input type="text" id="med-name" placeholder="Calpol, Ibuprofen, Vitamin D..." class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Dosage</label>
-                                <input type="text" id="med-dosage" placeholder="2.5 ml, 1 drop..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Dosage</label>
+                                <input type="text" id="med-dosage" placeholder="2.5 ml, 1 drop..." class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Frequency</label>
-                                <input type="text" id="med-frequency" placeholder="Every 4 hours, daily..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                                <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Frequency</label>
+                                <input type="text" id="med-frequency" placeholder="Every 4 hours, daily..." class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                             </div>
                         </div>
                     </div>
 
                     <!-- Notes -->
                     <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Notes</label>
-                        <textarea id="form-notes" rows="2" placeholder="Any optional remarks..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm"></textarea>
+                        <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Notes</label>
+                        <textarea id="form-notes" rows="2" placeholder="Any optional remarks..." class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm bg-transparent"></textarea>
                     </div>
 
                     <!-- Time of Activity (Back-dating) -->
                     <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Time of Activity</label>
-                        <select id="form-time-preset" onchange="toggleFormTimeCustom()" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 text-stone-800 text-sm">
+                        <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Time of Activity</label>
+                        <select id="form-time-preset" onchange="toggleFormTimeCustom()" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
                             <option value="now">Just Now</option>
                             <option value="15">15 minutes ago</option>
                             <option value="30">30 minutes ago</option>
@@ -374,11 +418,11 @@
                             <option value="custom">Custom Date & Time</option>
                         </select>
                         <div id="form-time-custom-container" class="hidden mt-2">
-                            <input type="datetime-local" id="form-time-custom" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
+                            <input type="datetime-local" id="form-time-custom" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] text-sm focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4]">
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-sm font-bold transition-all shadow-md">
+                    <button type="submit" class="w-full py-3.5 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-sm font-bold transition-all shadow-md">
                         Save Log Entry
                     </button>
                 </form>
@@ -389,32 +433,32 @@
         <div class="lg:col-span-2 space-y-6">
             
             <!-- Gemini Sleep Coach Card -->
-            <div id="ai-coach-card" class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm relative overflow-hidden" style="border-left: 4px solid #6366f1;">
+            <div id="ai-coach-card" class="bg-white dark:bg-[#211F26] rounded-m3-xxl border-l-4 border-l-[#6750A4] dark:border-l-[#D0BCFF] border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm relative overflow-hidden">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-11 h-11 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500 text-lg shadow-sm border border-indigo-100/30">
+                        <div class="w-11 h-11 bg-[#EADDFF] dark:bg-[#4F378B] rounded-full flex items-center justify-center text-[#6750A4] dark:text-[#D0BCFF] text-lg shadow-sm border border-[#CAC4D0]/30">
                             <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="text-lg font-bold text-stone-800 dark:text-white leading-tight">Gemini Sleep Coach</h3>
-                                <button onclick="toggleMinimizeGemini()" class="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 p-1" title="Minimize / Expand">
+                                <h3 class="text-lg font-black text-[#1D1B20] dark:text-[#E6E1E5] leading-tight">Gemini Sleep Coach</h3>
+                                <button onclick="toggleMinimizeGemini()" class="text-[#625B71] dark:text-[#CCC2DC] hover:text-[#49454F] dark:hover:text-[#E6E1E5] p-1 transition-colors" title="Minimize / Expand">
                                     <i id="minimize-gemini-icon" class="fa-solid fa-chevron-up"></i>
                                 </button>
                             </div>
-                            <p class="text-xs text-stone-400 font-semibold uppercase tracking-wider">Smart Nap Predictions & Insights</p>
+                            <p class="text-xs text-[#625B71] dark:text-[#CCC2DC] font-semibold uppercase tracking-wider">Smart Nap Predictions & Insights</p>
                         </div>
                     </div>
                     <div id="gemini-coach-header-action" class="w-full sm:w-auto">
-                        <button onclick="analyzeSleep()" id="btn-analyze" class="w-full sm:w-auto px-4.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5">
+                        <button onclick="analyzeSleep()" id="btn-analyze" class="w-full sm:w-auto px-5 py-3 bg-[#6750A4] hover:bg-[#5D4797] dark:bg-[#D0BCFF] dark:hover:bg-[#BC9EFF] text-white dark:text-[#381E72] rounded-full text-xs font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-brain" id="brain-icon"></i> <span id="analyze-text">Analyze Sleep & Predict Naps</span>
                         </button>
                     </div>
                 </div>
                 
                 <div id="gemini-coach-content">
-                    <div id="ai-analysis-result" class="bg-stone-50 rounded-2xl p-5 text-sm text-stone-600 border border-stone-100 overflow-y-auto max-h-[26rem] shadow-inner">
-                        <p class="text-stone-400 italic text-center py-4">Click "Analyze Sleep" to receive personalized wake-window targets and pediatric sleep insights for <span class="baby-name-display font-semibold text-indigo-500">Baby</span>.</p>
+                    <div id="ai-analysis-result" class="bg-[#F3EDF7] dark:bg-[#2B2930] rounded-m3-lg p-5 text-sm text-[#49454F] dark:text-[#CAC4D0] border border-[#E7E0EC] dark:border-[#49454F] overflow-y-auto max-h-[26rem] shadow-inner">
+                        <p class="text-[#79747E] dark:text-[#938F99] italic text-center py-4">Click "Analyze Sleep" to receive personalized wake-window targets and pediatric sleep insights for <span class="baby-name-display font-bold text-[#6750A4] dark:text-[#D0BCFF]">Baby</span>.</p>
                     </div>
                 </div>
             </div>
@@ -422,16 +466,16 @@
             <!-- Analytics Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Sleeping Trends -->
-                <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
-                    <h3 class="text-lg font-bold text-stone-800 mb-4">Sleep Over Time</h3>
+                <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm">
+                    <h3 class="text-lg font-extrabold text-[#1D1B20] dark:text-[#E6E1E5] mb-4">Sleep Over Time</h3>
                     <div class="h-48 flex items-center justify-center">
                         <canvas id="sleepChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Feedings & Nappies distribution -->
-                <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
-                    <h3 class="text-lg font-bold text-stone-800 mb-4">Activity Log Distribution</h3>
+                <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm">
+                    <h3 class="text-lg font-extrabold text-[#1D1B20] dark:text-[#E6E1E5] mb-4">Activity Log Distribution</h3>
                     <div class="h-48 flex items-center justify-center">
                         <canvas id="distributionChart"></canvas>
                     </div>
@@ -439,15 +483,15 @@
             </div>
 
             <!-- Activity Logs List -->
-            <div class="bg-white rounded-3xl border border-stone-100 p-6 shadow-sm">
-                <h3 class="text-xl font-bold text-stone-800 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-sky-500"></i> Historic Activity Log
+            <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm">
+                <h3 class="text-xl font-extrabold text-[#1D1B20] dark:text-[#E6E1E5] mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-[#6750A4] dark:text-[#D0BCFF]"></i> Historic Activity Log
                 </h3>
                 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[500px]">
                         <thead>
-                            <tr class="border-b border-stone-100 text-xs text-stone-400 font-bold uppercase tracking-wider">
+                            <tr class="border-b border-[#E7E0EC] dark:border-[#49454F] text-xs text-[#625B71] dark:text-[#CCC2DC] font-bold uppercase tracking-wider">
                                 <th class="pb-3 pl-2 w-1/4">Time</th>
                                 <th class="pb-3 w-1/5">Type</th>
                                 <th class="pb-3 w-2/5">Activity Specifics</th>
@@ -455,10 +499,10 @@
                                 <th class="pb-3 text-right pr-2">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="logs-tbody" class="text-sm divide-y divide-stone-50">
+                        <tbody id="logs-tbody" class="text-sm divide-y divide-[#E7E0EC] dark:divide-[#49454F]">
                             <tr>
-                                <td colspan="5" class="py-8 text-center text-stone-400">
-                                    <i class="fa-solid fa-baby-carriage text-2xl mb-2 text-stone-300"></i>
+                                <td colspan="5" class="py-8 text-center text-[#79747E]">
+                                    <i class="fa-solid fa-baby-carriage text-2xl mb-2 text-[#CAC4D0]"></i>
                                     <p>Loading activity logs...</p>
                                 </td>
                             </tr>
@@ -469,8 +513,8 @@
         </div>
     </main>
 
-    <footer class="max-w-6xl mx-auto px-4 mt-12 text-center text-xs text-stone-400 font-semibold">
-        <p>Baby Tracker Local Server &copy; 2026. Self-Hosted for Ultimate Data Privacy.</p>
+    <footer class="max-w-6xl mx-auto px-4 mt-12 text-center text-xs text-[#625B71] dark:text-[#CCC2DC] font-bold">
+        <p>Xadey-Bum Local Server &copy; 2026. Self-Hosted for Ultimate Data Privacy.</p>
     </footer>
 
     <!-- Frontend scripts -->
@@ -526,14 +570,14 @@
             // Toggle active visual states of buttons
             const btns = document.querySelectorAll('.type-btn');
             btns.forEach(b => {
-                b.classList.remove('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
-                b.classList.add('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
+                b.classList.remove('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
+                b.classList.add('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
             });
 
             if (type === 'FEEDING') {
                 const b = document.getElementById('btn-feed');
-                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
-                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
+                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
 
                 document.getElementById('fields-feeding').classList.remove('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');
@@ -541,8 +585,8 @@
                 document.getElementById('fields-medication').classList.add('hidden');
             } else if (type === 'SLEEP') {
                 const b = document.getElementById('btn-sleep');
-                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
-                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
+                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
 
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.remove('hidden');
@@ -550,8 +594,8 @@
                 document.getElementById('fields-medication').classList.add('hidden');
             } else if (type === 'NAPPY') {
                 const b = document.getElementById('btn-nappy');
-                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
-                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
+                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
 
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');
@@ -559,8 +603,8 @@
                 document.getElementById('fields-medication').classList.add('hidden');
             } else if (type === 'MEDICATION') {
                 const b = document.getElementById('btn-medication');
-                b.classList.remove('hover:bg-stone-50', 'text-stone-600', 'font-semibold');
-                b.classList.add('bg-sky-50/50', 'text-sky-600', 'border-sky-100', 'font-bold');
+                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
+                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
 
                 document.getElementById('fields-feeding').classList.add('hidden');
                 document.getElementById('fields-sleep').classList.add('hidden');

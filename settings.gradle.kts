@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Baby Tracker"
+rootProject.name = "Xadey-Bum"
 
 include(":app")
