@@ -64,6 +64,16 @@ fun DashboardScreen(
     var editingActivity by remember { mutableStateOf<BabyActivity?>(null) }
     var selectedTimelineType by remember { mutableStateOf<String?>(null) }
 
+    // Periodically poll server status every 10 seconds to sync sleep timer/activities
+    LaunchedEffect(key1 = serverUrl) {
+        if (serverUrl.isNotBlank()) {
+            while (true) {
+                viewModel.triggerSync()
+                kotlinx.coroutines.delay(10000)
+            }
+        }
+    }
+
     // Calculate today's stats
     val calendar = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 0)

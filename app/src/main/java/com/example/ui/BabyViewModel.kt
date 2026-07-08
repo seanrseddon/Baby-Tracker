@@ -389,6 +389,26 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
                 _lastSyncTime.value = newSyncTime
                 prefs.edit().putLong("last_sync_time", newSyncTime).apply()
                 _syncSuccess.value = true
+
+                // Sync sleep timer status from server
+                try {
+                    val api = SyncClient.getApiService(url)
+                    val status = api.getSleepTimer()
+                    val serverTime = status.startTime
+                    if (serverTime != null && serverTime > 0L) {
+                        if (_sleepTimerStart.value != serverTime) {
+                            _sleepTimerStart.value = serverTime
+                            prefs.edit().putLong("sleep_timer_start", serverTime).apply()
+                        }
+                    } else {
+                        if (_sleepTimerStart.value != null) {
+                            _sleepTimerStart.value = null
+                            prefs.edit().remove("sleep_timer_start").apply()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("BabyViewModel", "Failed to sync sleep timer status from server", e)
+                }
             } catch (e: Exception) {
                 Log.e("BabyViewModel", "Sync failed", e)
                 _syncError.value = e.localizedMessage ?: "Connection error. Ensure local server is running."
