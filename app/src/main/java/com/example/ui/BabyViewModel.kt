@@ -13,6 +13,8 @@ import com.example.data.api.GeminiClient
 import com.example.data.api.GeminiRequest
 import com.example.data.api.GeminiContent
 import com.example.data.api.GeminiPart
+import com.example.data.api.SyncClient
+import com.example.data.api.SleepTimerStatus
 import com.example.data.local.BabyDatabase
 import com.example.data.model.BabyActivity
 import com.example.data.repository.BabyRepository
@@ -135,6 +137,19 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
         val now = System.currentTimeMillis()
         _sleepTimerStart.value = now
         prefs.edit().putLong("sleep_timer_start", now).apply()
+
+        // Sync start with server
+        viewModelScope.launch {
+            try {
+                val url = _serverUrl.value
+                if (url.isNotBlank()) {
+                    val api = SyncClient.getApiService(url)
+                    api.startSleepTimer(SleepTimerStatus(now))
+                }
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Failed to sync started timer to server", e)
+            }
+        }
     }
 
     // Stop and save active sleep timer log
@@ -158,16 +173,55 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
 
         _sleepTimerStart.value = null
         prefs.edit().remove("sleep_timer_start").apply()
+
+        // Sync stop with server (deleting active timer)
+        viewModelScope.launch {
+            try {
+                val url = _serverUrl.value
+                if (url.isNotBlank()) {
+                    val api = SyncClient.getApiService(url)
+                    api.deleteSleepTimer()
+                }
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Failed to sync stopped timer to server", e)
+            }
+        }
     }
 
     fun cancelSleepTimer() {
         _sleepTimerStart.value = null
         prefs.edit().remove("sleep_timer_start").apply()
+
+        // Sync cancel with server (deleting active timer)
+        viewModelScope.launch {
+            try {
+                val url = _serverUrl.value
+                if (url.isNotBlank()) {
+                    val api = SyncClient.getApiService(url)
+                    api.deleteSleepTimer()
+                }
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Failed to sync canceled timer to server", e)
+            }
+        }
     }
 
     fun updateSleepTimerStart(newStartTime: Long) {
         _sleepTimerStart.value = newStartTime
         prefs.edit().putLong("sleep_timer_start", newStartTime).apply()
+
+        // Sync updated start with server
+        viewModelScope.launch {
+            try {
+                val url = _serverUrl.value
+                if (url.isNotBlank()) {
+                    val api = SyncClient.getApiService(url)
+                    api.startSleepTimer(SleepTimerStatus(newStartTime))
+                }
+            } catch (e: Exception) {
+                Log.e("BabyViewModel", "Failed to sync updated timer to server", e)
+            }
+        }
     }
 
     // Core log activity
@@ -314,6 +368,12 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
                 _isAnalyzingSleep.value = false
             }
         }
+    }
+
+    fun clearSleepAnalysis() {
+        _aiRecommendation.value = ""
+        _analysisError.value = null
+        prefs.edit().remove("ai_recommendation").apply()
     }
 
     fun triggerSync() {

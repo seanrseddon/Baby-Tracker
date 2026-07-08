@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
@@ -13,6 +17,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,6 +62,7 @@ fun DashboardScreen(
     val sleepTimerStart by viewModel.sleepTimerStart.collectAsState()
     var showAdjustSleepDialog by remember { mutableStateOf(false) }
     var editingActivity by remember { mutableStateOf<BabyActivity?>(null) }
+    var selectedTimelineType by remember { mutableStateOf<String?>(null) }
 
     // Calculate today's stats
     val calendar = Calendar.getInstance().apply {
@@ -79,6 +86,38 @@ fun DashboardScreen(
         }
     }
     val sleepHoursText = String.format(Locale.getDefault(), "%.1f", totalSleepMinutes / 60.0)
+
+    val groupedActivities = remember(activities) {
+        val sorted = activities.sortedByDescending { it.timestamp }
+        val monthFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+        
+        val result = linkedMapOf<String, LinkedHashMap<String, MutableList<BabyActivity>>>()
+        val cal = Calendar.getInstance()
+        
+        for (act in sorted) {
+            cal.timeInMillis = act.timestamp
+            val monthStr = monthFormat.format(Date(act.timestamp))
+            
+            // Start of week calculation (e.g. Monday)
+            val firstDayCal = cal.clone() as Calendar
+            firstDayCal.set(Calendar.DAY_OF_WEEK, firstDayCal.firstDayOfWeek)
+            val firstDayStr = SimpleDateFormat("MMM d", Locale.getDefault()).format(firstDayCal.time)
+            
+            val lastDayCal = firstDayCal.clone() as Calendar
+            lastDayCal.add(Calendar.DAY_OF_WEEK, 6)
+            val lastDayStr = SimpleDateFormat("MMM d", Locale.getDefault()).format(lastDayCal.time)
+            
+            val weekStr = "Week of $firstDayStr - $lastDayStr"
+            
+            val monthMap = result.getOrPut(monthStr) { linkedMapOf() }
+            val weekList = monthMap.getOrPut(weekStr) { mutableListOf() }
+            weekList.add(act)
+        }
+        result
+    }
+
+    val collapsedMonths = remember { mutableStateMapOf<String, Boolean>() }
+    val collapsedWeeks = remember { mutableStateMapOf<String, Boolean>() }
 
     Scaffold(
         topBar = {
@@ -205,7 +244,8 @@ fun DashboardScreen(
                             sub = "entries today",
                             icon = Icons.Default.Restaurant,
                             color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            onClick = { selectedTimelineType = "FEEDING" }
                         )
                         StatCard(
                             title = "Sleep",
@@ -213,7 +253,8 @@ fun DashboardScreen(
                             sub = "slept today",
                             icon = Icons.Default.NightsStay,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            onClick = { selectedTimelineType = "SLEEP" }
                         )
                     }
                     Row(
@@ -226,7 +267,8 @@ fun DashboardScreen(
                             sub = "changes today",
                             icon = Icons.Default.Opacity,
                             color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            onClick = { selectedTimelineType = "DIAPER" }
                         )
                         StatCard(
                             title = "Meds",
@@ -234,7 +276,8 @@ fun DashboardScreen(
                             sub = "given today",
                             icon = Icons.Default.MedicalServices,
                             color = Color(0xFF10B981),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            onClick = { selectedTimelineType = "MEDICATION" }
                         )
                     }
                 }
@@ -433,6 +476,18 @@ fun DashboardScreen(
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                            if (aiRecommendation.isNotBlank()) {
+                                IconButton(
+                                    onClick = { viewModel.clearSleepAnalysis() },
+                                    modifier = Modifier.testTag("clear_sleep_analysis_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Clear Sleep Analysis",
+                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                    )
+                                }
                             }
                         }
 
@@ -637,13 +692,120 @@ fun DashboardScreen(
                 }
             }
 
-            // Lazy List of Activities
-            items(activities, key = { it.id }) { activity ->
-                ActivityLogCard(
-                    activity = activity,
-                    onEdit = { editingActivity = activity },
-                    onDelete = { viewModel.deleteActivity(activity.id) }
-                )
+            // Lazy List of Activities grouped by Month and Week
+            groupedActivities.forEach { (month, weeks) ->
+                val isMonthCollapsed = collapsedMonths[month] == true
+                
+                // Month Header
+                item(key = "month_hdr_$month") {
+                    Card(
+                        onClick = { collapsedMonths[month] = !isMonthCollapsed },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = month,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Icon(
+                                imageVector = if (isMonthCollapsed) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
+                                contentDescription = if (isMonthCollapsed) "Expand" else "Collapse",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+
+                if (!isMonthCollapsed) {
+                    weeks.forEach { (week, weekActivities) ->
+                        val weekKey = "$month|$week"
+                        val isWeekCollapsed = collapsedWeeks[weekKey] == true
+                        
+                        // Week Header (with small indentation or slightly smaller text)
+                        item(key = "week_hdr_$weekKey") {
+                            Card(
+                                onClick = { collapsedWeeks[weekKey] = !isWeekCollapsed },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.DateRange,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = week,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "(${weekActivities.size} logs)",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = if (isWeekCollapsed) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
+                                        contentDescription = if (isWeekCollapsed) "Expand" else "Collapse",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (!isWeekCollapsed) {
+                            items(weekActivities, key = { "act_${it.id}" }) { activity ->
+                                Box(modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp)) {
+                                    ActivityLogCard(
+                                        activity = activity,
+                                        onEdit = { editingActivity = activity },
+                                        onDelete = { viewModel.deleteActivity(activity.id) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             item { Spacer(modifier = Modifier.height(80.dp)) } // Cushion space for FAB
@@ -671,6 +833,21 @@ fun DashboardScreen(
             }
         )
     }
+
+    if (selectedTimelineType != null) {
+        val filtered = todayActivities.filter { 
+            if (selectedTimelineType == "DIAPER") {
+                it.type == "DIAPER" || it.type == "NAPPY"
+            } else {
+                it.type == selectedTimelineType
+            }
+        }
+        TimelineDialog(
+            type = selectedTimelineType!!,
+            activities = filtered,
+            onDismiss = { selectedTimelineType = null }
+        )
+    }
 }
 
 @Composable
@@ -680,10 +857,17 @@ fun StatCard(
     sub: String,
     icon: ImageVector,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (onClick != null) {
+                Modifier.clickable(onClick = onClick)
+            } else {
+                Modifier
+            }
+        ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.08f)
@@ -730,11 +914,241 @@ fun StatCard(
 }
 
 @Composable
+fun TimelineDialog(
+    type: String,
+    activities: List<BabyActivity>,
+    onDismiss: () -> Unit
+) {
+    val formatter = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val categoryColor = when (type) {
+        "FEEDING" -> MaterialTheme.colorScheme.secondary
+        "SLEEP" -> MaterialTheme.colorScheme.primary
+        "DIAPER", "NAPPY" -> MaterialTheme.colorScheme.tertiary
+        "MEDICATION" -> Color(0xFF10B981)
+        else -> MaterialTheme.colorScheme.outline
+    }
+    val title = when (type) {
+        "FEEDING" -> "Today's Feedings"
+        "SLEEP" -> "Today's Sleep Logs"
+        "DIAPER", "NAPPY" -> "Today's Nappies"
+        "MEDICATION" -> "Today's Medications"
+        else -> "Today's Timeline"
+    }
+
+    val sortedActivities = remember(activities) {
+        activities.sortedBy { it.timestamp }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = when (type) {
+                        "FEEDING" -> Icons.Default.Restaurant
+                        "SLEEP" -> Icons.Default.NightsStay
+                        "DIAPER", "NAPPY" -> Icons.Default.Opacity
+                        else -> Icons.Default.MedicalServices
+                    },
+                    contentDescription = null,
+                    tint = categoryColor
+                )
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            }
+        },
+        text = {
+            if (sortedActivities.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No events logged for today yet.",
+                        color = MaterialTheme.colorScheme.outline,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    itemsIndexed(sortedActivities) { index, activity ->
+                        val timeStr = formatter.format(Date(activity.timestamp))
+                        var detailsText = ""
+                        when (activity.type) {
+                            "FEEDING" -> {
+                                try {
+                                    val details = JSONObject(activity.detailsJson)
+                                    val method = details.optString("method", "Bottle")
+                                    val amount = details.optDouble("amount", 0.0)
+                                    val unit = details.optString("unit", "oz")
+                                    val duration = details.optInt("durationMinutes", 0)
+                                    detailsText = if (method == "Solid") {
+                                        "Solid feeding ($duration mins)"
+                                    } else {
+                                        "$method: $amount $unit ($duration mins)"
+                                    }
+                                } catch (e: Exception) {
+                                    detailsText = "Feeding activity"
+                                }
+                            }
+                            "SLEEP" -> {
+                                try {
+                                    val details = JSONObject(activity.detailsJson)
+                                    val dur = details.optInt("durationMinutes", 0)
+                                    detailsText = "Slept for $dur minutes"
+                                } catch (e: Exception) {
+                                    detailsText = "Sleeping activity"
+                                }
+                            }
+                            "DIAPER", "NAPPY" -> {
+                                try {
+                                    val details = JSONObject(activity.detailsJson)
+                                    val status = details.optString("status", "Wet")
+                                    detailsText = "Nappy status: $status"
+                                } catch (e: Exception) {
+                                    detailsText = "Nappy activity"
+                                }
+                            }
+                            "MEDICATION" -> {
+                                try {
+                                    val details = JSONObject(activity.detailsJson)
+                                    val name = details.optString("name", "Unspecified")
+                                    val dosage = details.optString("dosage", "")
+                                    val frequency = details.optString("frequency", "")
+                                    val dosePart = if (dosage.isNotBlank()) " - $dosage" else ""
+                                    val freqPart = if (frequency.isNotBlank()) " ($frequency)" else ""
+                                    detailsText = "$name$dosePart$freqPart"
+                                } catch (e: Exception) {
+                                    detailsText = "Medication log"
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.width(36.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(2.dp)
+                                        .weight(1f)
+                                        .background(if (index == 0) Color.Transparent else categoryColor.copy(alpha = 0.3f))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(categoryColor)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(2.dp)
+                                        .weight(1f)
+                                        .background(if (index == sortedActivities.size - 1) Color.Transparent else categoryColor.copy(alpha = 0.3f))
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 12.dp, horizontal = 8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = timeStr,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Text(
+                                    text = detailsText,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (!activity.notes.isNullOrBlank()) {
+                                    Text(
+                                        text = activity.notes,
+                                        fontSize = 12.sp,
+                                        fontStyle = FontStyle.Italic,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
 fun ActivityLogCard(
     activity: BabyActivity,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    // Animation States
+    val alphaAnim = remember { Animatable(0f) }
+    val slideUpAnim = remember { Animatable(40f) }
+    val shimmerOffsetAnim = remember { Animatable(-250f) }
+    var showSparkle by remember { mutableStateOf(true) }
+
+    LaunchedEffect(activity.id) {
+        launch {
+            alphaAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 800,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        }
+        launch {
+            slideUpAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 800,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        }
+        shimmerOffsetAnim.animateTo(
+            targetValue = 700f,
+            animationSpec = tween(
+                durationMillis = 1400,
+                easing = LinearEasing
+            )
+        )
+        showSparkle = false
+    }
+
     val formatter = SimpleDateFormat("h:mm a - MMM d", Locale.getDefault())
     val timeStr = formatter.format(Date(activity.timestamp))
 
@@ -802,10 +1216,40 @@ fun ActivityLogCard(
         }
     }
 
+    val shimmerBrush = if (shimmerOffsetAnim.value < 700f) {
+        androidx.compose.ui.graphics.Brush.linearGradient(
+            colors = listOf(
+                Color.Transparent,
+                categoryColor.copy(alpha = 0.05f),
+                categoryColor.copy(alpha = 0.22f),
+                categoryColor.copy(alpha = 0.05f),
+                Color.Transparent
+            ),
+            start = androidx.compose.ui.geometry.Offset(shimmerOffsetAnim.value, 0f),
+            end = androidx.compose.ui.geometry.Offset(shimmerOffsetAnim.value + 160f, 160f)
+        )
+    } else {
+        null
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("activity_card_${activity.id}"),
+            .testTag("activity_card_${activity.id}")
+            .graphicsLayer {
+                alpha = alphaAnim.value
+                translationY = slideUpAnim.value
+            }
+            .then(
+                if (shimmerBrush != null) {
+                    Modifier.drawWithContent {
+                        drawContent()
+                        drawRect(brush = shimmerBrush)
+                    }
+                } else {
+                    Modifier
+                }
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -839,15 +1283,41 @@ fun ActivityLogCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = activity.type,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = categoryColor,
-                        modifier = Modifier
-                            .background(categoryColor.copy(alpha = 0.08f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = activity.type,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = categoryColor,
+                            modifier = Modifier
+                                .background(categoryColor.copy(alpha = 0.08f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                        if (showSparkle) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "sparkle")
+                            val scale by infiniteTransition.animateFloat(
+                                initialValue = 0.6f,
+                                targetValue = 1.3f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(500, easing = androidx.compose.animation.core.LinearEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "sparkle_scale"
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "Sparkle",
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier
+                                    .size(13.dp)
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }
+                            )
+                        }
+                    }
                     Text(
                         text = timeStr,
                         fontSize = 11.sp,

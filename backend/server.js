@@ -414,6 +414,48 @@ app.get('/api/profile', (req, res) => {
     });
 });
 
+// REST API - GET Sleep Timer status
+app.get('/api/sleep-timer', (req, res) => {
+    db.get("SELECT value FROM profile WHERE key = 'sleepTimerStart'", [], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ startTime: row ? parseInt(row.value) : null });
+    });
+});
+
+// REST API - POST start active sleep timer
+app.post('/api/sleep-timer', (req, res) => {
+    const { startTime } = req.body;
+    if (!startTime) {
+        return res.status(400).json({ error: 'Missing startTime parameter' });
+    }
+    db.run(
+        "INSERT OR REPLACE INTO profile (key, value) VALUES ('sleepTimerStart', ?)",
+        [startTime.toString()],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true, startTime });
+        }
+    );
+});
+
+// REST API - DELETE stop/cancel sleep timer
+app.delete('/api/sleep-timer', (req, res) => {
+    db.run(
+        "DELETE FROM profile WHERE key = 'sleepTimerStart'",
+        [],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ success: true });
+        }
+    );
+});
+
 // REST API - POST Profile
 app.post('/api/profile', (req, res) => {
     const { babyName, babyDob } = req.body;

@@ -4,6 +4,11 @@ import com.example.data.model.BabyActivity
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
+data class SleepTimerStatus(
+    val startTime: Long?
+)
+
+@JsonClass(generateAdapter = true)
 data class SyncRequest(
     val lastSyncTime: Long,
     val clientActivities: List<BabyActivityDto>
