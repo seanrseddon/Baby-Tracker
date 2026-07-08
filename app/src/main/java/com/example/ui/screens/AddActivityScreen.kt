@@ -46,10 +46,13 @@ fun AddActivityScreen(
     var feedingDuration by remember { mutableStateOf("15") }
 
     // Sleep fields
-    var sleepDuration by remember { mutableStateOf("60") }
+    var sleepStartTime by remember { mutableStateOf(System.currentTimeMillis() - 60 * 60 * 1000L) } // default 1 hour ago
+    var sleepEndTime by remember { mutableStateOf(System.currentTimeMillis()) } // default now
 
     // Nappy fields
     var nappyStatus by remember { mutableStateOf("Wet") } // Wet, Dirty, Both, Dry
+    var weeSize by remember { mutableStateOf("Medium") } // Small, Medium, Big
+    var poopSize by remember { mutableStateOf("Medium") } // Small, Medium, Big
 
     // Medication fields
     var medName by remember { mutableStateOf("") }
@@ -273,20 +276,174 @@ fun AddActivityScreen(
                         }
 
                         "SLEEP" -> {
-                            OutlinedTextField(
-                                value = sleepDuration,
-                                onValueChange = { sleepDuration = it },
-                                label = { Text("Duration (minutes)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val startCal = remember(sleepStartTime) { Calendar.getInstance().apply { timeInMillis = sleepStartTime } }
+                            val endCal = remember(sleepEndTime) { Calendar.getInstance().apply { timeInMillis = sleepEndTime } }
+                            
+                            val startDatePicker = remember(sleepStartTime) {
+                                android.app.DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        val sel = Calendar.getInstance().apply {
+                                            timeInMillis = sleepStartTime
+                                            set(Calendar.YEAR, y)
+                                            set(Calendar.MONTH, m)
+                                            set(Calendar.DAY_OF_MONTH, d)
+                                        }
+                                        sleepStartTime = sel.timeInMillis
+                                        if (sleepEndTime < sel.timeInMillis) {
+                                            sleepEndTime = sel.timeInMillis + 60 * 60 * 1000L
+                                        }
+                                    },
+                                    startCal.get(Calendar.YEAR),
+                                    startCal.get(Calendar.MONTH),
+                                    startCal.get(Calendar.DAY_OF_MONTH)
+                                )
+                            }
+                            val startTimePicker = remember(sleepStartTime) {
+                                android.app.TimePickerDialog(
+                                    context,
+                                    { _, h, min ->
+                                        val sel = Calendar.getInstance().apply {
+                                            timeInMillis = sleepStartTime
+                                            set(Calendar.HOUR_OF_DAY, h)
+                                            set(Calendar.MINUTE, min)
+                                        }
+                                        sleepStartTime = sel.timeInMillis
+                                        if (sleepEndTime < sel.timeInMillis) {
+                                            sleepEndTime = sel.timeInMillis + 60 * 60 * 1000L
+                                        }
+                                    },
+                                    startCal.get(Calendar.HOUR_OF_DAY),
+                                    startCal.get(Calendar.MINUTE),
+                                    false
+                                )
+                            }
+                            
+                            val endDatePicker = remember(sleepEndTime) {
+                                android.app.DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        val sel = Calendar.getInstance().apply {
+                                            timeInMillis = sleepEndTime
+                                            set(Calendar.YEAR, y)
+                                            set(Calendar.MONTH, m)
+                                            set(Calendar.DAY_OF_MONTH, d)
+                                        }
+                                        sleepEndTime = sel.timeInMillis
+                                    },
+                                    endCal.get(Calendar.YEAR),
+                                    endCal.get(Calendar.MONTH),
+                                    endCal.get(Calendar.DAY_OF_MONTH)
+                                )
+                            }
+                            val endTimePicker = remember(sleepEndTime) {
+                                android.app.TimePickerDialog(
+                                    context,
+                                    { _, h, min ->
+                                        val sel = Calendar.getInstance().apply {
+                                            timeInMillis = sleepEndTime
+                                            set(Calendar.HOUR_OF_DAY, h)
+                                            set(Calendar.MINUTE, min)
+                                        }
+                                        sleepEndTime = sel.timeInMillis
+                                    },
+                                    endCal.get(Calendar.HOUR_OF_DAY),
+                                    endCal.get(Calendar.MINUTE),
+                                    false
+                                )
+                            }
+
+                            val calculatedMinutes = remember(sleepStartTime, sleepEndTime) {
+                                val diff = sleepEndTime - sleepStartTime
+                                if (diff > 0) (diff / 60000).toInt() else 0
+                            }
+                            val durationString = remember(calculatedMinutes) {
+                                val hrs = calculatedMinutes / 60
+                                val mins = calculatedMinutes % 60
+                                if (hrs > 0) "${hrs}h ${mins}m" else "${mins}m"
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Sleep Timing", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+                                
+                                // Start Time Row
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Start:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.width(48.dp))
+                                    val sdfDate = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
+                                    val sdfTime = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+                                    
+                                    OutlinedButton(
+                                        onClick = { startDatePicker.show() },
+                                        modifier = Modifier.weight(1.2f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(sdfDate.format(Date(sleepStartTime)), fontSize = 11.sp)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { startTimePicker.show() },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(sdfTime.format(Date(sleepStartTime)), fontSize = 11.sp)
+                                    }
+                                }
+
+                                // End Time Row
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("End:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, modifier = Modifier.width(48.dp))
+                                    val sdfDate = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
+                                    val sdfTime = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+                                    
+                                    OutlinedButton(
+                                        onClick = { endDatePicker.show() },
+                                        modifier = Modifier.weight(1.2f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(sdfDate.format(Date(sleepEndTime)), fontSize = 11.sp)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { endTimePicker.show() },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(sdfTime.format(Date(sleepEndTime)), fontSize = 11.sp)
+                                    }
+                                }
+
+                                // Calculated Duration Box
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Total Duration:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text(durationString, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp)
+                                    }
+                                }
+                            }
                         }
 
                         "NAPPY" -> {
-                            Column {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text("Status", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
-                                Spacer(modifier = Modifier.height(8.dp))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -309,6 +466,66 @@ fun AddActivityScreen(
                                                 color = if (isSel) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 fontSize = 12.sp
                                             )
+                                        }
+                                    }
+                                }
+
+                                if (nappyStatus == "Wet" || nappyStatus == "Both") {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("Wee Size", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        listOf("Small", "Medium", "Big").forEach { size ->
+                                            val isSel = weeSize == size
+                                            val activeColor = MaterialTheme.colorScheme.primary
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(if (isSel) activeColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow)
+                                                    .clickable { weeSize = size }
+                                                    .padding(vertical = 10.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    size,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSel) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (nappyStatus == "Dirty" || nappyStatus == "Both") {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("Poop Size", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        listOf("Small", "Medium", "Big").forEach { size ->
+                                            val isSel = poopSize == size
+                                            val activeColor = MaterialTheme.colorScheme.secondary
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(if (isSel) activeColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow)
+                                                    .clickable { poopSize = size }
+                                                    .padding(vertical = 10.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    size,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSel) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -439,10 +656,16 @@ fun AddActivityScreen(
                             details.put("durationMinutes", feedingDuration.toIntOrNull() ?: 15)
                         }
                         "SLEEP" -> {
-                            details.put("durationMinutes", sleepDuration.toIntOrNull() ?: 60)
+                            val diff = sleepEndTime - sleepStartTime
+                            val calculatedMinutes = if (diff > 0) (diff / 60000).toInt() else 0
+                            details.put("durationMinutes", calculatedMinutes)
+                            details.put("startTime", sleepStartTime)
+                            details.put("endTime", sleepEndTime)
                         }
                         "NAPPY" -> {
                             details.put("status", nappyStatus)
+                            details.put("weeSize", weeSize)
+                            details.put("poopSize", poopSize)
                         }
                         "MEDICATION" -> {
                             details.put("name", medName.trim().ifEmpty { "Unspecified Medication" })
@@ -451,10 +674,13 @@ fun AddActivityScreen(
                         }
                     }
 
-                    val finalTimestamp = when (timeOffsetMinutes) {
-                        -1 -> selectedCustomTime
-                        0 -> System.currentTimeMillis()
-                        else -> System.currentTimeMillis() - (timeOffsetMinutes * 60 * 1000L)
+                    val finalTimestamp = when (selectedType) {
+                        "SLEEP" -> sleepStartTime
+                        else -> when (timeOffsetMinutes) {
+                            -1 -> selectedCustomTime
+                            0 -> System.currentTimeMillis()
+                            else -> System.currentTimeMillis() - (timeOffsetMinutes * 60 * 1000L)
+                        }
                     }
 
                     viewModel.logActivity(
