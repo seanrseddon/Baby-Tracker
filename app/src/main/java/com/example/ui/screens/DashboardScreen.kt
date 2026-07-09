@@ -64,6 +64,16 @@ fun DashboardScreen(
     var editingActivity by remember { mutableStateOf<BabyActivity?>(null) }
     var selectedTimelineType by remember { mutableStateOf<String?>(null) }
 
+    // Smart Calendar Navigation State
+    var calendarDate by remember { mutableStateOf(Calendar.getInstance()) }
+    var selectedDate by remember { mutableStateOf(Calendar.getInstance()) }
+
+    // CSV Options Menu State
+    var showCsvMenu by remember { mutableStateOf(false) }
+    var showCsvImportDialog by remember { mutableStateOf(false) }
+    var showCsvExportDialog by remember { mutableStateOf(false) }
+    var pastedCsvText by remember { mutableStateOf("") }
+
     // Periodically poll server status every 10 seconds to sync sleep timer/activities
     LaunchedEffect(key1 = serverUrl) {
         if (serverUrl.isNotBlank()) {
@@ -96,6 +106,56 @@ fun DashboardScreen(
         }
     }
     val sleepHoursText = String.format(Locale.getDefault(), "%.1f", totalSleepMinutes / 60.0)
+
+    val selectedDayActivities = remember(activities, selectedDate) {
+        activities.filter { act ->
+            val actCal = Calendar.getInstance().apply { timeInMillis = act.timestamp }
+            actCal.get(Calendar.YEAR) == selectedDate.get(Calendar.YEAR) &&
+            actCal.get(Calendar.MONTH) == selectedDate.get(Calendar.MONTH) &&
+            actCal.get(Calendar.DAY_OF_MONTH) == selectedDate.get(Calendar.DAY_OF_MONTH)
+        }.sortedByDescending { it.timestamp }
+    }
+
+    val sleepTrends = remember(activities) {
+        val sleepActivities = activities.filter { it.type == "SLEEP" }
+        val shortNaps = sleepActivities.filter { 
+            try {
+                val details = JSONObject(it.detailsJson)
+                val dur = details.optInt("durationMinutes", 0)
+                dur in 1..45
+            } catch (e: Exception) {
+                false
+            }
+        }
+        val shortNapsCount = shortNaps.size
+        val shortNapsAvgDuration = if (shortNaps.isNotEmpty()) {
+            shortNaps.map {
+                try {
+                    JSONObject(it.detailsJson).optInt("durationMinutes", 0)
+                } catch (e: Exception) {
+                    0
+                }
+            }.average().toInt()
+        } else {
+            0
+        }
+        val timeCategories = shortNaps.map {
+            val cal = Calendar.getInstance().apply { timeInMillis = it.timestamp }
+            val hour = cal.get(Calendar.HOUR_OF_DAY)
+            when (hour) {
+                in 6..11 -> "Morning (6 AM - 12 PM)"
+                in 12..17 -> "Afternoon (12 PM - 6 PM)"
+                in 18..23 -> "Evening (6 PM - Midnight)"
+                else -> "Night (Midnight - 6 AM)"
+            }
+        }
+        val commonTime = if (timeCategories.isNotEmpty()) {
+            timeCategories.groupBy { it }.maxByOrNull { it.value.size }?.key ?: "N/A"
+        } else {
+            "N/A"
+        }
+        Triple(shortNapsCount, shortNapsAvgDuration, commonTime)
+    }
 
     val groupedActivities = remember(activities) {
         val sorted = activities.sortedByDescending { it.timestamp }
@@ -196,6 +256,37 @@ fun DashboardScreen(
                             contentDescription = "Settings",
                             tint = MaterialTheme.colorScheme.outline
                         )
+                    }
+                    Box {
+                        IconButton(
+                            onClick = { showCsvMenu = true },
+                            modifier = Modifier.testTag("csv_menu_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More Options",
+                                tint = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showCsvMenu,
+                            onDismissRequest = { showCsvMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("📝 Import CSV (Paste)") },
+                                onClick = {
+                                    showCsvMenu = false
+                                    showCsvImportDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("📤 Export CSV") },
+                                onClick = {
+                                    showCsvMenu = false
+                                    showCsvExportDialog = true
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -375,8 +466,12 @@ fun DashboardScreen(
                                 }
                             }
 
+                            val elapsedHrs = elapsedMinutes / 60
+                            val elapsedMins = elapsedMinutes % 60
+                            val timeStr = if (elapsedHrs > 0) "${elapsedHrs}h ${elapsedMins}m" else "${elapsedMins}m"
+
                             Text(
-                                text = "Asleep for $elapsedMinutes mins",
+                                text = "Asleep for $timeStr",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -666,181 +761,88 @@ fun DashboardScreen(
                 }
             }
 
-            // List Title
+            // Smart Calendar Grid
             item {
+                SmartCalendar(
+                    currentMonth = calendarDate,
+                    selectedDate = selectedDate,
+                    activities = activities,
+                    onMonthChange = { calendarDate = it },
+                    onDateSelect = { 
+                        selectedDate = it 
+                        calendarDate = it.clone() as Calendar
+                    }
+                )
+            }
+
+            // Sleep & Nap Trends Panel
+            item {
+                SleepTrendsCard(
+                    shortNapsCount = sleepTrends.first,
+                    avgDuration = sleepTrends.second,
+                    commonTime = sleepTrends.third
+                )
+            }
+
+            // Selected Day Timeline Header
+            item {
+                val selectedDayStr = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()).format(selectedDate.time)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Recent Activity Log",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        text = "Timeline for $selectedDayStr",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "${activities.size} logs",
+                        text = "${selectedDayActivities.size} logs",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.outline
                     )
                 }
             }
 
-            // Empty state placeholder
-            if (activities.isEmpty()) {
+            // Selected Day Timeline List Card
+            if (selectedDayActivities.isEmpty()) {
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ChildCare,
-                            contentDescription = "No logs",
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "No activities logged yet",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = "Tap the '+' button or start a timer to begin tracking",
-                            color = MaterialTheme.colorScheme.outline,
-                            fontSize = 13.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-                    }
-                }
-            }
-
-            // Lazy List of Activities grouped by Month and Week
-            groupedActivities.forEach { (month, weeks) ->
-                val isMonthCollapsed = collapsedMonths[month] == true
-                
-                // Month Header
-                item(key = "month_hdr_$month") {
                     Card(
-                        onClick = {
-                            val newVal = !isMonthCollapsed
-                            collapsedMonths[month] = newVal
-                            sharedPrefs.edit().putBoolean("month_$month", newVal).apply()
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = month,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
                             Icon(
-                                imageVector = if (isMonthCollapsed) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
-                                contentDescription = if (isMonthCollapsed) "Expand" else "Collapse",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                imageVector = Icons.Default.ChildCare,
+                                contentDescription = "No logs on this day",
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.outlineVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "No activities logged on this day",
+                                color = MaterialTheme.colorScheme.outline,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
                 }
-
-                if (!isMonthCollapsed) {
-                    weeks.forEach { (week, weekActivities) ->
-                        val weekKey = "$month|$week"
-                        val isWeekCollapsed = collapsedWeeks[weekKey] == true
-                        
-                        // Week Header (with small indentation or slightly smaller text)
-                        item(key = "week_hdr_$weekKey") {
-                            Card(
-                                onClick = {
-                                    val newVal = !isWeekCollapsed
-                                    collapsedWeeks[weekKey] = newVal
-                                    sharedPrefs.edit().putBoolean("week_$weekKey", newVal).apply()
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.DateRange,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = week,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "(${weekActivities.size} logs)",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = if (isWeekCollapsed) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
-                                        contentDescription = if (isWeekCollapsed) "Expand" else "Collapse",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        if (!isWeekCollapsed) {
-                            items(weekActivities, key = { "act_${it.id}" }) { activity ->
-                                Box(modifier = Modifier.padding(start = 16.dp, top = 2.dp, bottom = 2.dp)) {
-                                    ActivityLogCard(
-                                        activity = activity,
-                                        onEdit = { editingActivity = activity },
-                                        onDelete = { viewModel.deleteActivity(activity.id) }
-                                    )
-                                }
-                            }
-                        }
+            } else {
+                items(selectedDayActivities, key = { "act_${it.id}" }) { activity ->
+                    Box(modifier = Modifier.padding(vertical = 2.dp)) {
+                        ActivityLogCard(
+                            activity = activity,
+                            onEdit = { editingActivity = activity },
+                            onDelete = { viewModel.deleteActivity(activity.id) }
+                        )
                     }
                 }
             }
@@ -883,6 +885,154 @@ fun DashboardScreen(
             type = selectedTimelineType!!,
             activities = filtered,
             onDismiss = { selectedTimelineType = null }
+        )
+    }
+
+    if (showCsvImportDialog) {
+        var importStatusMessage by remember { mutableStateOf<String?>(null) }
+        var isImportError by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { 
+                showCsvImportDialog = false
+                importStatusMessage = null
+                pastedCsvText = ""
+            },
+            title = {
+                Text(
+                    text = "Import Activities from CSV",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Paste Huckleberry or custom CSV formatted text below. Column headers like 'Type', 'Start Time', 'Duration', 'Notes' are supported case-insensitively.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    OutlinedTextField(
+                        value = pastedCsvText,
+                        onValueChange = { pastedCsvText = it },
+                        label = { Text("Paste CSV Content") },
+                        placeholder = { Text("Type,Start Time,Duration,Notes\nSLEEP,2026-07-09 13:00:00,45,Nap time") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    )
+
+                    if (importStatusMessage != null) {
+                        Text(
+                            text = importStatusMessage!!,
+                            color = if (isImportError) MaterialTheme.colorScheme.error else Color(0xFF10B981),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (pastedCsvText.isBlank()) {
+                            importStatusMessage = "Please paste some CSV text first."
+                            isImportError = true
+                            return@Button
+                        }
+                        viewModel.importCsv(pastedCsvText) { success, count, msg ->
+                            isImportError = !success
+                            importStatusMessage = msg
+                            if (success) {
+                                pastedCsvText = ""
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Import")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showCsvImportDialog = false
+                    importStatusMessage = null
+                    pastedCsvText = ""
+                }) {
+                    Text("Dismiss")
+                }
+            }
+        )
+    }
+
+    if (showCsvExportDialog) {
+        val csvData = remember { viewModel.exportActivitiesToCsv() }
+        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+        var copiedConfirmation by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { 
+                showCsvExportDialog = false
+                copiedConfirmation = false
+            },
+            title = {
+                Text(
+                    text = "Exported CSV Activities",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Here is your raw CSV containing all logged activities. You can copy it to your clipboard to save or import it elsewhere.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    OutlinedTextField(
+                        value = csvData,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    )
+
+                    if (copiedConfirmation) {
+                        Text(
+                            text = "Copied to clipboard successfully!",
+                            color = Color(0xFF10B981),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(csvData))
+                        copiedConfirmation = true
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Copy Raw CSV")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showCsvExportDialog = false
+                    copiedConfirmation = false
+                }) {
+                    Text("Close")
+                }
+            }
         )
     }
 }
@@ -1217,6 +1367,7 @@ fun ActivityLogCard(
         "SLEEP" -> MaterialTheme.colorScheme.primary
         "DIAPER", "NAPPY" -> MaterialTheme.colorScheme.tertiary
         "MEDICATION" -> Color(0xFF10B981)
+        "TEMPERATURE" -> Color(0xFFF59E0B)
         else -> MaterialTheme.colorScheme.outline
     }
     var detailsText = ""
@@ -1293,6 +1444,20 @@ fun ActivityLogCard(
                 detailsText = "$name$dosePart$freqPart"
             } catch (e: Exception) {
                 detailsText = "Medication log"
+            }
+        }
+        "TEMPERATURE" -> {
+            icon = Icons.Default.Thermostat
+            try {
+                val details = JSONObject(activity.detailsJson)
+                val value = if (details.has("value")) details.optDouble("value", 0.0) else details.optDouble("temperature", 0.0)
+                var unit = details.optString("unit", "°C")
+                if (unit.isNotBlank() && !unit.startsWith("°") && (unit == "C" || unit == "F")) {
+                    unit = "°$unit"
+                }
+                detailsText = "Temperature: $value$unit"
+            } catch (e: Exception) {
+                detailsText = "Temperature log"
             }
         }
     }
@@ -1781,6 +1946,15 @@ fun EditActivityDialog(
     var medDosage by remember { mutableStateOf(initialDetails.optString("dosage", "")) }
     var medFrequency by remember { mutableStateOf(initialDetails.optString("frequency", "")) }
 
+    // TEMPERATURE states
+    val initialTempValue = remember(initialDetails) {
+        val v = if (initialDetails.has("value")) initialDetails.optDouble("value", 37.0) 
+                else initialDetails.optDouble("temperature", 37.0)
+        v.toString()
+    }
+    var tempValue by remember { mutableStateOf(initialTempValue) }
+    var tempUnit by remember { mutableStateOf(initialDetails.optString("unit", "°C")) }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     val customCalendar = remember(timestamp) {
         Calendar.getInstance().apply { timeInMillis = timestamp }
@@ -2212,6 +2386,31 @@ fun EditActivityDialog(
                             }
                         }
                     }
+                    "TEMPERATURE" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = tempValue,
+                                    onValueChange = { tempValue = it },
+                                    label = { Text("Temperature") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.weight(1.5f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+
+                                OutlinedTextField(
+                                    value = tempUnit,
+                                    onValueChange = { tempUnit = it },
+                                    label = { Text("Unit") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+                    }
                 }
 
                 OutlinedTextField(
@@ -2252,6 +2451,13 @@ fun EditActivityDialog(
                                 finalDetails.put("dosage", medDosage.trim())
                                 finalDetails.put("frequency", medFrequency.trim())
                             }
+                            "TEMPERATURE" -> {
+                                val doubleVal = tempValue.toDoubleOrNull() ?: 37.0
+                                finalDetails.put("value", doubleVal)
+                                finalDetails.put("temperature", doubleVal)
+                                val formattedUnit = if (tempUnit.startsWith("°")) tempUnit else "°$tempUnit"
+                                finalDetails.put("unit", formattedUnit)
+                            }
                         }
                     } catch (e: Exception) {}
 
@@ -2277,5 +2483,296 @@ fun EditActivityDialog(
             }
         }
     )
+}
+
+@Composable
+fun SmartCalendar(
+    currentMonth: Calendar,
+    selectedDate: Calendar,
+    activities: List<BabyActivity>,
+    onMonthChange: (Calendar) -> Unit,
+    onDateSelect: (Calendar) -> Unit
+) {
+    val monthYearFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()) }
+    val daysOfWeek = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
+    
+    val daysList = remember(currentMonth) {
+        val list = mutableListOf<Date?>()
+        val cal = currentMonth.clone() as Calendar
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+        val maxDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        
+        for (i in 1 until firstDayOfWeek) {
+            list.add(null)
+        }
+        for (day in 1..maxDays) {
+            cal.set(Calendar.DAY_OF_MONTH, day)
+            list.add(cal.time)
+        }
+        list
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    val prev = currentMonth.clone() as Calendar
+                    prev.add(Calendar.MONTH, -1)
+                    onMonthChange(prev)
+                }) {
+                    Icon(Icons.Default.ChevronLeft, contentDescription = "Previous Month")
+                }
+                
+                Text(
+                    text = monthYearFormat.format(currentMonth.time),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                IconButton(onClick = {
+                    val next = currentMonth.clone() as Calendar
+                    next.add(Calendar.MONTH, 1)
+                    onMonthChange(next)
+                }) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Next Month")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth()) {
+                daysOfWeek.forEach { day ->
+                    Text(
+                        text = day,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            val chunks = daysList.chunked(7)
+            chunks.forEach { week ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    week.forEach { date ->
+                        if (date == null) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        } else {
+                            val dayCal = Calendar.getInstance().apply { time = date }
+                            val isSelected = selectedDate.get(Calendar.YEAR) == dayCal.get(Calendar.YEAR) &&
+                                             selectedDate.get(Calendar.MONTH) == dayCal.get(Calendar.MONTH) &&
+                                             selectedDate.get(Calendar.DAY_OF_MONTH) == dayCal.get(Calendar.DAY_OF_MONTH)
+                            
+                            val isToday = Calendar.getInstance().let {
+                                it.get(Calendar.YEAR) == dayCal.get(Calendar.YEAR) &&
+                                it.get(Calendar.MONTH) == dayCal.get(Calendar.MONTH) &&
+                                it.get(Calendar.DAY_OF_MONTH) == dayCal.get(Calendar.DAY_OF_MONTH)
+                            }
+                            
+                            val dayActivities = activities.filter { act ->
+                                val actCal = Calendar.getInstance().apply { timeInMillis = act.timestamp }
+                                actCal.get(Calendar.YEAR) == dayCal.get(Calendar.YEAR) &&
+                                actCal.get(Calendar.MONTH) == dayCal.get(Calendar.MONTH) &&
+                                actCal.get(Calendar.DAY_OF_MONTH) == dayCal.get(Calendar.DAY_OF_MONTH)
+                            }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(CircleShape)
+                                    .background(
+                                        when {
+                                            isSelected -> MaterialTheme.colorScheme.primary
+                                            isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                            else -> Color.Transparent
+                                        }
+                                    )
+                                    .clickable { onDateSelect(dayCal) }
+                                    .padding(4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = dayCal.get(Calendar.DAY_OF_MONTH).toString(),
+                                        fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                                        fontSize = 14.sp,
+                                        color = when {
+                                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                                            isToday -> MaterialTheme.colorScheme.primary
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        }
+                                    )
+                                    if (dayActivities.isNotEmpty()) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            val distinctTypes = dayActivities.map { it.type }.distinct().take(3)
+                                            distinctTypes.forEach { type ->
+                                                val dotColor = when (type) {
+                                                    "FEEDING" -> MaterialTheme.colorScheme.secondary
+                                                    "SLEEP" -> MaterialTheme.colorScheme.primary
+                                                    "DIAPER", "NAPPY" -> MaterialTheme.colorScheme.tertiary
+                                                    "MEDICATION" -> Color(0xFF10B981)
+                                                    "TEMPERATURE" -> Color(0xFFF59E0B)
+                                                    else -> MaterialTheme.colorScheme.outline
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(4.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else dotColor)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (week.size < 7) {
+                        for (i in 0 until (7 - week.size)) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SleepTrendsCard(
+    shortNapsCount: Int,
+    avgDuration: Int,
+    commonTime: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+        ),
+        shape = RoundedCornerShape(24.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Sleep & Nap Trends",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
+            HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Short Naps",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$shortNapsCount",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "(<= 45 mins)",
+                        fontSize = 8.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+                
+                Box(modifier = Modifier.width(1.dp).height(36.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).align(Alignment.CenterVertically))
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1.2f)) {
+                    Text(
+                        text = "Avg. Nap",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${avgDuration}m",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "duration",
+                        fontSize = 8.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+                
+                Box(modifier = Modifier.width(1.dp).height(36.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)).align(Alignment.CenterVertically))
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1.8f)) {
+                    Text(
+                        text = "Common Time",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = commonTime.substringBefore(" ("),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                    val detailTime = commonTime.substringAfter(" (", "").substringBefore(")")
+                    if (detailTime.isNotEmpty()) {
+                        Text(
+                            text = "($detailTime)",
+                            fontSize = 8.sp,
+                            color = MaterialTheme.colorScheme.outline,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 

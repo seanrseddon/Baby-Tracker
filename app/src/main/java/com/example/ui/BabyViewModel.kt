@@ -625,6 +625,101 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun exportActivitiesToCsv(): String {
+        val sb = java.lang.StringBuilder()
+        sb.append("Type,Start Time,End Time,Duration,Notes,Amount,Unit,Feed Type,Nappy,Medicine,Dosage,Temperature\n")
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        activities.value.sortedByDescending { it.timestamp }.forEach { act ->
+            var startTimeStr = sdf.format(Date(act.timestamp))
+            var endTimeStr = ""
+            var durationStr = ""
+            var amountStr = ""
+            var unitStr = ""
+            var feedTypeStr = ""
+            var nappyStatusStr = ""
+            var medNameStr = ""
+            var medDosageStr = ""
+            var tempStr = ""
+            
+            try {
+                val details = JSONObject(act.detailsJson)
+                when (act.type) {
+                    "FEEDING" -> {
+                        feedTypeStr = details.optString("method", "")
+                        val amountVal = details.optDouble("amount", 0.0)
+                        if (amountVal > 0) {
+                            amountStr = amountVal.toString()
+                        }
+                        unitStr = details.optString("unit", "")
+                        val durationVal = details.optInt("durationMinutes", 0)
+                        if (durationVal > 0) {
+                            durationStr = durationVal.toString()
+                        }
+                    }
+                    "SLEEP" -> {
+                        val durationVal = details.optInt("durationMinutes", 0)
+                        if (durationVal > 0) {
+                            durationStr = durationVal.toString()
+                        }
+                        val sTime = details.optLong("startTime", 0L)
+                        val eTime = details.optLong("endTime", 0L)
+                        if (sTime > 0L) {
+                            startTimeStr = sdf.format(Date(sTime))
+                        }
+                        if (eTime > 0L) {
+                            endTimeStr = sdf.format(Date(eTime))
+                        }
+                    }
+                    "DIAPER", "NAPPY" -> {
+                        val status = details.optString("status", "")
+                        val weeSize = details.optString("weeSize", "")
+                        val poopSize = details.optString("poopSize", "")
+                        val parts = mutableListOf<String>()
+                        if (weeSize.isNotBlank()) parts.add("Wee:$weeSize")
+                        if (poopSize.isNotBlank()) parts.add("Poop:$poopSize")
+                        val detailPart = if (parts.isNotEmpty()) " (${parts.joinToString(",")})" else ""
+                        nappyStatusStr = "$status$detailPart"
+                    }
+                    "MEDICATION" -> {
+                        medNameStr = details.optString("name", "")
+                        medDosageStr = details.optString("dosage", "")
+                    }
+                    "TEMPERATURE" -> {
+                        val value = if (details.has("value")) details.optDouble("value", 0.0) else details.optDouble("temperature", 0.0)
+                        var unit = details.optString("unit", "")
+                        if (unit.isNotBlank() && !unit.startsWith("°") && (unit == "C" || unit == "F")) {
+                            unit = "°$unit"
+                        }
+                        tempStr = "$value$unit"
+                    }
+                }
+            } catch (e: Exception) {}
+            
+            fun csvCell(cell: String): String {
+                val clean = cell.replace("\"", "\"\"")
+                return if (clean.contains(",") || clean.contains("\n") || clean.contains("\"")) {
+                    "\"$clean\""
+                } else {
+                    clean
+                }
+            }
+            
+            sb.append(csvCell(act.type)).append(",")
+            sb.append(csvCell(startTimeStr)).append(",")
+            sb.append(csvCell(endTimeStr)).append(",")
+            sb.append(csvCell(durationStr)).append(",")
+            sb.append(csvCell(act.notes)).append(",")
+            sb.append(csvCell(amountStr)).append(",")
+            sb.append(csvCell(unitStr)).append(",")
+            sb.append(csvCell(feedTypeStr)).append(",")
+            sb.append(csvCell(nappyStatusStr)).append(",")
+            sb.append(csvCell(medNameStr)).append(",")
+            sb.append(csvCell(medDosageStr)).append(",")
+            sb.append(csvCell(tempStr)).append("\n")
+        }
+        return sb.toString()
+    }
+
     private fun parseDateTime(dateTimeStr: String): Long? {
         val clean = dateTimeStr.trim().replace("\\s+".toRegex(), " ")
         val formats = listOf(

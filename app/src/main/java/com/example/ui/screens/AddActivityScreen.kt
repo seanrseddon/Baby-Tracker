@@ -59,6 +59,10 @@ fun AddActivityScreen(
     var medDosage by remember { mutableStateOf("") }
     var medFrequency by remember { mutableStateOf("") }
 
+    // Temperature fields
+    var tempValue by remember { mutableStateOf("37.0") }
+    var tempUnit by remember { mutableStateOf("C") } // C, F
+
     var timeOffsetMinutes by remember { mutableStateOf(0) } // 0=Now, 15=15m ago, 30=30m ago, 60=1h ago, -1=Custom
     var selectedCustomTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -142,42 +146,60 @@ fun AddActivityScreen(
                 color = MaterialTheme.colorScheme.outline
             )
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TypeTabButton(
-                    label = "Feeding",
-                    isSelected = selectedType == "FEEDING",
-                    icon = Icons.Default.Restaurant,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f),
-                    onClick = { selectedType = "FEEDING" }
-                )
-                TypeTabButton(
-                    label = "Sleep",
-                    isSelected = selectedType == "SLEEP",
-                    icon = Icons.Default.NightsStay,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f),
-                    onClick = { selectedType = "SLEEP" }
-                )
-                TypeTabButton(
-                    label = "Nappy",
-                    isSelected = selectedType == "NAPPY",
-                    icon = Icons.Default.Opacity,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.weight(1f),
-                    onClick = { selectedType = "NAPPY" }
-                )
-                TypeTabButton(
-                    label = "Meds",
-                    isSelected = selectedType == "MEDICATION",
-                    icon = Icons.Default.MedicalServices,
-                    color = Color(0xFF10B981),
-                    modifier = Modifier.weight(1f),
-                    onClick = { selectedType = "MEDICATION" }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TypeTabButton(
+                        label = "Feeding",
+                        isSelected = selectedType == "FEEDING",
+                        icon = Icons.Default.Restaurant,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedType = "FEEDING" }
+                    )
+                    TypeTabButton(
+                        label = "Sleep",
+                        isSelected = selectedType == "SLEEP",
+                        icon = Icons.Default.NightsStay,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedType = "SLEEP" }
+                    )
+                    TypeTabButton(
+                        label = "Nappy",
+                        isSelected = selectedType == "NAPPY",
+                        icon = Icons.Default.Opacity,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedType = "NAPPY" }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TypeTabButton(
+                        label = "Meds",
+                        isSelected = selectedType == "MEDICATION",
+                        icon = Icons.Default.MedicalServices,
+                        color = Color(0xFF10B981),
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedType = "MEDICATION" }
+                    )
+                    TypeTabButton(
+                        label = "Temp",
+                        isSelected = selectedType == "TEMPERATURE",
+                        icon = Icons.Default.Thermostat,
+                        color = Color(0xFFF59E0B),
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedType = "TEMPERATURE" }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -199,7 +221,7 @@ fun AddActivityScreen(
                                 Text("Method", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf("Bottle", "Breast", "Solid").forEach { method ->
+                                    listOf("Bottle", "Breast", "Solid", "Water/Juice").forEach { method ->
                                         val isSel = feedingMethod == method
                                         val activeColor = MaterialTheme.colorScheme.secondary
                                         Box(
@@ -563,6 +585,51 @@ fun AddActivityScreen(
                                 }
                             }
                         }
+
+                        "TEMPERATURE" -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Temperature Details", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = tempValue,
+                                        onValueChange = { tempValue = it },
+                                        label = { Text("Temperature (e.g. 37.0)") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier.weight(2f).testTag("temp_value_input"),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    // Unit Selection
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Unit", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                        Row(modifier = Modifier.fillMaxWidth()) {
+                                            listOf("C", "F").forEach { unit ->
+                                                val isSel = tempUnit == unit
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(if (isSel) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                                                        .clickable { tempUnit = unit }
+                                                        .padding(vertical = 12.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        unit,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp,
+                                                        color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // Notes (Common)
@@ -672,6 +739,13 @@ fun AddActivityScreen(
                             details.put("dosage", medDosage.trim())
                             details.put("frequency", medFrequency.trim())
                         }
+                        "TEMPERATURE" -> {
+                            val doubleVal = tempValue.toDoubleOrNull() ?: 37.0
+                            details.put("value", doubleVal)
+                            details.put("temperature", doubleVal)
+                            val formattedUnit = if (tempUnit.startsWith("°")) tempUnit else "°$tempUnit"
+                            details.put("unit", formattedUnit)
+                        }
                     }
 
                     val finalTimestamp = when (selectedType) {
@@ -702,6 +776,7 @@ fun AddActivityScreen(
                         "FEEDING" -> MaterialTheme.colorScheme.secondary
                         "SLEEP" -> MaterialTheme.colorScheme.primary
                         "MEDICATION" -> Color(0xFF10B981)
+                        "TEMPERATURE" -> Color(0xFFF59E0B)
                         else -> MaterialTheme.colorScheme.tertiary
                     }
                 )

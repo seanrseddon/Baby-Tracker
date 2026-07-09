@@ -263,6 +263,21 @@
 
                             <hr class="border-[#E7E0EC] dark:border-[#49454F]">
 
+                            <!-- CSV Data Actions in Dropdown Menu -->
+                            <div class="space-y-2">
+                                <span class="block text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider">CSV Data Actions</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="exportToCSV(); toggleSettingsDropdown();" class="py-2.5 px-3 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-[#E7E0EC] dark:border-[#49454F]">
+                                        <i class="fa-solid fa-file-export text-[#6750A4] dark:text-[#D0BCFF]"></i> Export CSV
+                                    </button>
+                                    <button onclick="triggerCSVImport(); toggleSettingsDropdown();" class="py-2.5 px-3 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-[#E7E0EC] dark:border-[#49454F]">
+                                        <i class="fa-solid fa-file-import text-[#7D5260] dark:text-[#EFB8C8]"></i> Import CSV
+                                    </button>
+                                </div>
+                            </div>
+
+                            <hr class="border-[#E7E0EC] dark:border-[#49454F]">
+
                             <!-- Danger Zone -->
                             <div class="space-y-2">
                                 <span class="block text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">Danger Zone</span>
@@ -322,23 +337,8 @@
                 </div>
             </div>
 
-            <!-- Settings & Utilities Card -->
-            <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm space-y-5">
-                <h3 class="text-xs font-bold text-[#625B71] dark:text-[#CCC2DC] uppercase tracking-wider">CSV Data Actions</h3>
-                
-                <!-- CSV Import/Export -->
-                <div class="space-y-3">
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="exportToCSV()" class="py-3 px-4 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E7E0EC] dark:border-[#49454F]">
-                            <i class="fa-solid fa-file-export text-[#6750A4] dark:text-[#D0BCFF]"></i> Export CSV
-                        </button>
-                        <button onclick="triggerCSVImport()" class="py-3 px-4 bg-[#F3EDF7] hover:bg-[#EADDFF] dark:bg-[#2B2930] dark:hover:bg-[#4F378B] text-[#49454F] dark:text-[#CAC4D0] rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm border border-[#E7E0EC] dark:border-[#49454F]">
-                            <i class="fa-solid fa-file-import text-[#7D5260] dark:text-[#EFB8C8]"></i> Import CSV
-                        </button>
-                    </div>
-                    <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
-                </div>
-            </div>
+            <!-- Hidden CSV Input -->
+            <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
 
             <!-- Stats & Quick Info -->
             <div class="bg-gradient-to-br from-[#6750A4] to-[#4F378B] dark:from-[#381E72] dark:to-[#21005D] text-white rounded-m3-xxl p-6 shadow-md relative overflow-hidden">
@@ -376,22 +376,26 @@
                 </h2>
                 
                 <!-- Type Selector -->
-                <div class="grid grid-cols-4 gap-2 mb-6">
-                    <button id="btn-feed" onclick="selectType('FEEDING')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] bg-[#EADDFF]/50 text-[#21005D] border-[#6750A4] font-bold">
-                        <i class="fa-solid fa-bottle-milk text-lg"></i>
-                        <span class="text-xs">Feeding</span>
+                <div class="grid grid-cols-5 gap-1.5 mb-6">
+                    <button id="btn-feed" onclick="selectType('FEEDING')" class="type-btn py-3 px-1 rounded-m3-xl flex flex-col items-center justify-center gap-1 transition-all border border-[#E7E0EC] bg-[#EADDFF]/50 text-[#21005D] border-[#6750A4] font-bold" title="Feeding">
+                        <i class="fa-solid fa-bottle-milk text-base"></i>
+                        <span class="text-[10px]">Feeding</span>
                     </button>
-                    <button id="btn-sleep" onclick="selectType('SLEEP')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold">
-                        <i class="fa-solid fa-moon text-lg"></i>
-                        <span class="text-xs">Sleep</span>
+                    <button id="btn-sleep" onclick="selectType('SLEEP')" class="type-btn py-3 px-1 rounded-m3-xl flex flex-col items-center justify-center gap-1 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold" title="Sleep">
+                        <i class="fa-solid fa-moon text-base"></i>
+                        <span class="text-[10px]">Sleep</span>
                     </button>
-                    <button id="btn-nappy" onclick="selectType('NAPPY')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold">
-                        <i class="fa-solid fa-baby-carriage text-lg"></i>
-                        <span class="text-xs">Nappy</span>
+                    <button id="btn-nappy" onclick="selectType('NAPPY')" class="type-btn py-3 px-1 rounded-m3-xl flex flex-col items-center justify-center gap-1 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold" title="Nappy">
+                        <i class="fa-solid fa-baby-carriage text-base"></i>
+                        <span class="text-[10px]">Nappy</span>
                     </button>
-                    <button id="btn-medication" onclick="selectType('MEDICATION')" class="type-btn py-3 px-2 rounded-m3-xl flex flex-col items-center justify-center gap-1.5 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold">
-                        <i class="fa-solid fa-pills text-lg text-[#2E7D32]"></i>
-                        <span class="text-xs">Med</span>
+                    <button id="btn-medication" onclick="selectType('MEDICATION')" class="type-btn py-3 px-1 rounded-m3-xl flex flex-col items-center justify-center gap-1 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold" title="Medication">
+                        <i class="fa-solid fa-pills text-base text-[#2E7D32]"></i>
+                        <span class="text-[10px]">Med</span>
+                    </button>
+                    <button id="btn-temperature" onclick="selectType('TEMPERATURE')" class="type-btn py-3 px-1 rounded-m3-xl flex flex-col items-center justify-center gap-1 transition-all border border-[#E7E0EC] hover:bg-[#F3EDF7] text-[#49454F] font-semibold" title="Temperature">
+                        <i class="fa-solid fa-temperature-half text-base text-orange-500"></i>
+                        <span class="text-[10px]">Temp</span>
                     </button>
                 </div>
 
@@ -413,6 +417,7 @@
                                 <option value="Bottle">Bottle (Formula/Expressed)</option>
                                 <option value="Breast">Breastfeeding</option>
                                 <option value="Solid">Solid Food</option>
+                                <option value="Water/Juice">Water/Juice</option>
                             </select>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -485,6 +490,23 @@
                             <div>
                                 <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Frequency</label>
                                 <input type="text" id="med-frequency" placeholder="Every 4 hours, daily..." class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fields: Temperature -->
+                    <div id="fields-temperature" class="space-y-3 hidden">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-2">
+                                <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Temperature</label>
+                                <input type="number" step="0.1" id="temp-value" value="37.0" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider mb-1">Unit</label>
+                                <select id="temp-unit" class="w-full px-4 py-3 rounded-m3-md border border-[#79747E] dark:border-[#938F99] focus:outline-none focus:ring-2 focus:ring-[#6750A4]/20 focus:border-[#6750A4] text-sm" onchange="convertTempInput()">
+                                    <option value="°C" selected>°C</option>
+                                    <option value="°F">°F</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -573,6 +595,33 @@
                 </div>
             </div>
 
+            <!-- Trends & Statistics Card (Short Naps & More) -->
+            <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm space-y-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-orange-50 dark:bg-orange-950/20 rounded-full flex items-center justify-center text-orange-500">
+                        <i class="fa-solid fa-chart-line text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-extrabold text-[#1D1B20] dark:text-[#E6E1E5] leading-tight">Short Nap Trends & Sleep Distribution</h3>
+                        <p class="text-[10px] text-[#625B71] dark:text-[#CCC2DC] font-bold uppercase tracking-wider">Averages & Typical Times</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="trends-container">
+                    <div class="bg-stone-50 dark:bg-[#2B2930]/30 rounded-m3-lg p-4 text-center border border-stone-100 dark:border-stone-800">
+                        <div class="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Short Naps (&lt;45m)</div>
+                        <div class="text-2xl font-black text-stone-800 dark:text-stone-100 mt-1" id="trend-short-naps-count">0</div>
+                    </div>
+                    <div class="bg-stone-50 dark:bg-[#2B2930]/30 rounded-m3-lg p-4 text-center border border-stone-100 dark:border-stone-800">
+                        <div class="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Avg Short Nap Duration</div>
+                        <div class="text-2xl font-black text-stone-800 dark:text-stone-100 mt-1" id="trend-short-naps-avg">0m</div>
+                    </div>
+                    <div class="bg-stone-50 dark:bg-[#2B2930]/30 rounded-m3-lg p-4 text-center border border-stone-100 dark:border-stone-800">
+                        <div class="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Typical Occurrence Times</div>
+                        <div class="text-sm font-extrabold text-stone-800 dark:text-stone-100 mt-2 truncate" id="trend-short-naps-times">None logged</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Activity Logs List -->
             <div class="bg-white dark:bg-[#211F26] rounded-m3-xxl border border-[#E7E0EC] dark:border-[#49454F] p-6 shadow-sm">
                 <h3 class="text-xl font-extrabold text-[#1D1B20] dark:text-[#E6E1E5] mb-4 flex items-center gap-2">
@@ -643,6 +692,55 @@
         let activeSleepTimerStart = null;
         let timerInterval = null;
 
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let selectedDay = new Date().getDate();
+
+        function convertTempInput() {
+            const valEl = document.getElementById('temp-value');
+            const unitEl = document.getElementById('temp-unit');
+            const val = parseFloat(valEl.value);
+            if (isNaN(val)) return;
+            if (unitEl.value === '°F') {
+                valEl.value = (val * 9/5 + 32).toFixed(1);
+            } else {
+                valEl.value = ((val - 32) * 5/9).toFixed(1);
+            }
+        }
+
+        function convertEditTempInput() {
+            const valEl = document.getElementById('edit-temp-value');
+            const unitEl = document.getElementById('edit-temp-unit');
+            const val = parseFloat(valEl.value);
+            if (isNaN(val)) return;
+            if (unitEl.value === '°F') {
+                valEl.value = (val * 9/5 + 32).toFixed(1);
+            } else {
+                valEl.value = ((val - 32) * 5/9).toFixed(1);
+            }
+        }
+
+        function changeCalendarMonth(offset) {
+            currentMonth += offset;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            const maxDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+            if (selectedDay > maxDays) {
+                selectedDay = maxDays;
+            }
+            renderData();
+        }
+
+        function selectCalendarDay(day) {
+            selectedDay = day;
+            renderData();
+        }
+
         function selectType(type) {
             document.getElementById('form-type').value = type;
             
@@ -653,42 +751,39 @@
                 b.classList.add('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
             });
 
+            // Hide all field containers
+            document.getElementById('fields-feeding').classList.add('hidden');
+            document.getElementById('fields-sleep').classList.add('hidden');
+            document.getElementById('fields-nappy').classList.add('hidden');
+            document.getElementById('fields-medication').classList.add('hidden');
+            document.getElementById('fields-temperature').classList.add('hidden');
+
+            let btnId = '';
+            let fieldsId = '';
             if (type === 'FEEDING') {
-                const b = document.getElementById('btn-feed');
-                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
-                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
-
-                document.getElementById('fields-feeding').classList.remove('hidden');
-                document.getElementById('fields-sleep').classList.add('hidden');
-                document.getElementById('fields-nappy').classList.add('hidden');
-                document.getElementById('fields-medication').classList.add('hidden');
+                btnId = 'btn-feed';
+                fieldsId = 'fields-feeding';
             } else if (type === 'SLEEP') {
-                const b = document.getElementById('btn-sleep');
-                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
-                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
-
-                document.getElementById('fields-feeding').classList.add('hidden');
-                document.getElementById('fields-sleep').classList.remove('hidden');
-                document.getElementById('fields-nappy').classList.add('hidden');
-                document.getElementById('fields-medication').classList.add('hidden');
+                btnId = 'btn-sleep';
+                fieldsId = 'fields-sleep';
             } else if (type === 'NAPPY') {
-                const b = document.getElementById('btn-nappy');
-                b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
-                b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
-
-                document.getElementById('fields-feeding').classList.add('hidden');
-                document.getElementById('fields-sleep').classList.add('hidden');
-                document.getElementById('fields-nappy').classList.remove('hidden');
-                document.getElementById('fields-medication').classList.add('hidden');
+                btnId = 'btn-nappy';
+                fieldsId = 'fields-nappy';
             } else if (type === 'MEDICATION') {
-                const b = document.getElementById('btn-medication');
+                btnId = 'btn-medication';
+                fieldsId = 'fields-medication';
+            } else if (type === 'TEMPERATURE') {
+                btnId = 'btn-temperature';
+                fieldsId = 'fields-temperature';
+            }
+
+            if (btnId) {
+                const b = document.getElementById(btnId);
                 b.classList.remove('hover:bg-[#F3EDF7]', 'dark:hover:bg-[#4F378B]/20', 'text-[#49454F]', 'dark:text-[#CAC4D0]', 'font-semibold');
                 b.classList.add('bg-[#EADDFF]/50', 'dark:bg-[#4F378B]/40', 'text-[#21005D]', 'dark:text-[#EADDFF]', 'border-[#6750A4]', 'dark:border-[#D0BCFF]', 'font-bold');
-
-                document.getElementById('fields-feeding').classList.add('hidden');
-                document.getElementById('fields-sleep').classList.add('hidden');
-                document.getElementById('fields-nappy').classList.add('hidden');
-                document.getElementById('fields-medication').classList.remove('hidden');
+            }
+            if (fieldsId) {
+                document.getElementById(fieldsId).classList.remove('hidden');
             }
             renderSleepTimerUI();
         }
@@ -1186,6 +1281,11 @@
                     dosage: document.getElementById('med-dosage').value.trim(),
                     frequency: document.getElementById('med-frequency').value.trim()
                 };
+            } else if (type === 'TEMPERATURE') {
+                details = {
+                    temperature: parseFloat(document.getElementById('temp-value').value) || 37.0,
+                    unit: document.getElementById('temp-unit').value
+                };
             }
 
             const body = {
@@ -1212,6 +1312,17 @@
                         document.getElementById('med-dosage').value = '';
                         document.getElementById('med-frequency').value = '';
                     }
+                    if (document.getElementById('temp-value')) {
+                        document.getElementById('temp-value').value = '37.0';
+                        document.getElementById('temp-unit').value = '°C';
+                    }
+                    
+                    // Navigate calendar to newly added item's date
+                    const addedDate = new Date(timestamp);
+                    currentYear = addedDate.getFullYear();
+                    currentMonth = addedDate.getMonth();
+                    selectedDay = addedDate.getDate();
+
                     newlyAddedId = id;
                     fetchData();
                 }
@@ -1472,17 +1583,19 @@
             const container = document.getElementById('logs-container');
             if (activities.length === 0) {
                 container.innerHTML = `
-                    <div class="py-8 text-center text-stone-400">
-                        <i class="fa-solid fa-cookie-bite text-3xl mb-2 text-stone-300"></i>
-                        <p>No activity logs recorded yet. Use the form to record one!</p>
+                    <div class="py-12 text-center text-stone-400">
+                        <i class="fa-solid fa-cookie-bite text-4xl mb-3 text-stone-300"></i>
+                        <p class="font-bold">No activity logs recorded yet.</p>
+                        <p class="text-xs mt-1">Use the quick add form to log your baby's first event!</p>
                     </div>
                 `;
                 updateStats(0, 0, 0, 0);
+                updateTrends([]);
                 renderCharts([]);
                 return;
             }
 
-            // Today calculation
+            // Today calculation for header dashboard stats
             const todayStart = new Date();
             todayStart.setHours(0,0,0,0);
 
@@ -1491,237 +1604,282 @@
             let nappyCount = 0;
             let medsCount = 0;
 
-            const groups = {}; // key: "YYYY-MM", value: { title: "June 2026", key: "YYYY-MM", weeks: {} }
-
             activities.forEach(a => {
-                const date = new Date(a.timestamp);
-                
-                // Track daily counters for today
-                if (a.type === 'FEEDING') {
-                    if (a.timestamp >= todayStart.getTime()) feedCount++;
-                } else if (a.type === 'SLEEP') {
-                    if (a.timestamp >= todayStart.getTime()) {
+                if (a.timestamp >= todayStart.getTime()) {
+                    const mapType = (a.type === 'DIAPER' || a.type === 'NAPPY') ? 'NAPPY' : a.type;
+                    if (mapType === 'FEEDING') feedCount++;
+                    else if (mapType === 'SLEEP') {
                         try {
                             const details = JSON.parse(a.detailsJson);
                             sleepMinutes += parseInt(details.durationMinutes || 0);
                         } catch (e){}
                     }
-                } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
-                    if (a.timestamp >= todayStart.getTime()) nappyCount++;
-                } else if (a.type === 'MEDICATION') {
-                    if (a.timestamp >= todayStart.getTime()) medsCount++;
+                    else if (mapType === 'NAPPY') nappyCount++;
+                    else if (mapType === 'MEDICATION') medsCount++;
                 }
-
-                // Grouping by Month
-                const year = date.getFullYear();
-                const monthIndex = date.getMonth();
-                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                const monthName = monthNames[monthIndex];
-                const groupKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
-
-                if (!groups[groupKey]) {
-                    groups[groupKey] = {
-                        title: `${monthName} ${year}`,
-                        key: groupKey,
-                        weeks: {}
-                    };
-                }
-                
-                // Calculate week key/label (Monday start)
-                const tempDate = new Date(a.timestamp);
-                const day = tempDate.getDay();
-                const diff = tempDate.getDate() - day + (day === 0 ? -6 : 1);
-                const monday = new Date(tempDate.setDate(diff));
-                const sunday = new Date(monday);
-                sunday.setDate(monday.getDate() + 6);
-                
-                const opt = { month: 'short', day: 'numeric' };
-                const mondayStr = monday.toLocaleDateString([], opt);
-                const sundayStr = sunday.toLocaleDateString([], opt);
-                const weekLabel = `Week of ${mondayStr} - ${sundayStr}`;
-                const weekKey = `${groupKey}-W-${monday.getFullYear()}-${monday.getMonth()}-${monday.getDate()}`;
-
-                if (!groups[groupKey].weeks[weekKey]) {
-                    groups[groupKey].weeks[weekKey] = {
-                        label: weekLabel,
-                        key: weekKey,
-                        items: []
-                    };
-                }
-                groups[groupKey].weeks[weekKey].items.push(a);
             });
 
-            const sortedKeys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
-            let sectionsHtml = '';
+            // Update stats and trends
+            updateStats(feedCount, (sleepMinutes / 60).toFixed(1), nappyCount, medsCount);
+            updateTrends(activities);
 
-            sortedKeys.forEach((monthKey, mIndex) => {
-                const group = groups[monthKey];
-                const savedMonthCollapse = localStorage.getItem('collapsed_section-' + group.key);
-                const isMonthExpanded = savedMonthCollapse !== null ? (savedMonthCollapse === 'false') : (mIndex === 0);
-                const monthDisplayClass = isMonthExpanded ? '' : 'hidden';
-                const monthChevronClass = isMonthExpanded ? 'fa-chevron-up' : 'fa-chevron-down';
+            // RENDER INTERACTIVE SMART CALENDAR
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthName = monthNames[currentMonth];
 
-                let weeksHtml = '';
-                
-                // Sort weeks descending
-                const weekKeys = Object.keys(group.weeks).sort((a,b) => b.localeCompare(a));
-                
-                weekKeys.forEach((weekKey, wIndex) => {
-                    const week = group.weeks[weekKey];
-                    const savedWeekCollapse = localStorage.getItem('collapsed_section-' + week.key);
-                    const isWeekExpanded = savedWeekCollapse !== null ? (savedWeekCollapse === 'false') : (mIndex === 0 && wIndex === 0);
-                    const weekDisplayClass = isWeekExpanded ? '' : 'hidden';
-                    const weekChevronClass = isWeekExpanded ? 'fa-chevron-up' : 'fa-chevron-down';
+            // Get number of days in month and starting day of week
+            const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-                    let rowsHtml = '';
-                    
-                    week.items.forEach(a => {
-                        const date = new Date(a.timestamp);
-                        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            let calendarHtml = `
+                <div class="p-4 border border-stone-100 dark:border-stone-800 rounded-2xl bg-stone-50/50 dark:bg-[#1D1B20]/40 space-y-4">
+                    <!-- Calendar Header Controls -->
+                    <div class="flex items-center justify-between bg-white dark:bg-[#211F26] px-4 py-3 rounded-xl border border-stone-100 dark:border-stone-800 shadow-sm">
+                        <button onclick="changeCalendarMonth(-1)" class="w-9 h-9 rounded-full hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center justify-center transition-all active:scale-95 border border-stone-100 dark:border-stone-800" title="Previous Month">
+                            <i class="fa-solid fa-chevron-left text-[#6750A4] dark:text-[#D0BCFF]"></i>
+                        </button>
+                        <span class="font-black text-sm text-[#1D1B20] dark:text-[#E6E1E5] tracking-tight">
+                            ${monthName} ${currentYear}
+                        </span>
+                        <button onclick="changeCalendarMonth(1)" class="w-9 h-9 rounded-full hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center justify-center transition-all active:scale-95 border border-stone-100 dark:border-stone-800" title="Next Month">
+                            <i class="fa-solid fa-chevron-right text-[#6750A4] dark:text-[#D0BCFF]"></i>
+                        </button>
+                    </div>
 
-                        let iconClass = '';
-                        let badgeClass = '';
-                        let displayType = a.type;
+                    <!-- Weekdays Labels -->
+                    <div class="grid grid-cols-7 gap-1 text-center font-black text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-wider">
+                        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                    </div>
+
+                    <!-- Days Grid -->
+                    <div class="grid grid-cols-7 gap-1.5">
+            `;
+
+            // Blank spaces for preceding month
+            for (let i = 0; i < firstDayIndex; i++) {
+                calendarHtml += `<div class="aspect-square bg-stone-100/10 dark:bg-transparent rounded-xl"></div>`;
+            }
+
+            // Fill days of current month
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dDate = new Date(currentYear, currentMonth, d);
+                const dayStart = dDate.setHours(0,0,0,0);
+                const dayEnd = dDate.setHours(23,59,59,999);
+
+                // Filter events on this specific date
+                const dayActs = activities.filter(a => a.timestamp >= dayStart && a.timestamp <= dayEnd);
+
+                // Check selection status
+                const isSelected = (d === selectedDay);
+                let selectedClass = '';
+                if (isSelected) {
+                    selectedClass = 'bg-[#EADDFF]/75 dark:bg-[#4F378B]/80 border-2 border-[#6750A4] dark:border-[#D0BCFF] font-black scale-[0.97] shadow-sm';
+                } else {
+                    selectedClass = 'bg-white dark:bg-[#211F26] border border-stone-100 dark:border-stone-800 hover:bg-[#F3EDF7]/50 dark:hover:bg-stone-800/30';
+                }
+
+                // Gather unique event types on this day for dots indicators
+                const typesOnDay = [...new Set(dayActs.map(a => (a.type === 'DIAPER' || a.type === 'NAPPY') ? 'NAPPY' : a.type))];
+                let dotsHtml = '';
+                typesOnDay.forEach(t => {
+                    let dotColor = 'bg-stone-400';
+                    if (t === 'FEEDING') dotColor = 'bg-sky-500';
+                    else if (t === 'SLEEP') dotColor = 'bg-indigo-500';
+                    else if (t === 'NAPPY') dotColor = 'bg-pink-500';
+                    else if (t === 'MEDICATION') dotColor = 'bg-emerald-500';
+                    else if (t === 'TEMPERATURE') dotColor = 'bg-orange-500';
+                    dotsHtml += `<span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>`;
+                });
+
+                calendarHtml += `
+                    <div onclick="selectCalendarDay(${d})" class="aspect-square flex flex-col justify-between p-2 rounded-xl cursor-pointer transition-all relative ${selectedClass}">
+                        <span class="text-xs font-bold text-[#1D1B20] dark:text-[#E6E1E5]">${d}</span>
+                        <div class="flex justify-center gap-0.5 mt-auto flex-wrap">
+                            ${dotsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            calendarHtml += `
+                    </div>
+                </div>
+
+                <!-- SELECTED DAY TIMELINE TILE & SUMMARY -->
+                <div class="mt-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-stone-100 dark:border-stone-800 pb-2">
+                        <h4 class="text-sm font-extrabold text-stone-700 dark:text-stone-300 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-[#6750A4] dark:text-[#D0BCFF]"></i>
+                            Timeline: ${monthName} ${selectedDay}, ${currentYear}
+                        </h4>
+                    </div>
+            `;
+
+            // Filter activities strictly for selected day
+            const selDate = new Date(currentYear, currentMonth, selectedDay);
+            selDate.setHours(0,0,0,0);
+            const selEnd = new Date(selDate);
+            selEnd.setDate(selDate.getDate() + 1);
+
+            const selectedDayActivities = activities.filter(a => a.timestamp >= selDate.getTime() && a.timestamp < selEnd.getTime());
+            selectedDayActivities.sort((a,b) => b.timestamp - a.timestamp); // Newest first
+
+            // Calculate selected day counters
+            let sFeed = 0, sSleepMin = 0, sNappy = 0, sMeds = 0, sTemp = 0;
+            selectedDayActivities.forEach(a => {
+                const mapType = (a.type === 'DIAPER' || a.type === 'NAPPY') ? 'NAPPY' : a.type;
+                if (mapType === 'FEEDING') sFeed++;
+                else if (mapType === 'SLEEP') {
+                    try {
+                        const details = JSON.parse(a.detailsJson);
+                        sSleepMin += parseInt(details.durationMinutes || 0);
+                    } catch(e){}
+                }
+                else if (mapType === 'NAPPY') sNappy++;
+                else if (mapType === 'MEDICATION') sMeds++;
+                else if (mapType === 'TEMPERATURE') sTemp++;
+            });
+
+            // Display horizontal daily statistics metrics row
+            calendarHtml += `
+                <div class="flex flex-wrap gap-2 mb-4 bg-stone-50 dark:bg-stone-900/40 p-3 rounded-2xl border border-stone-100 dark:border-stone-800">
+                    <span class="inline-flex items-center gap-1.5 bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold border border-sky-200/50">
+                        <i class="fa-solid fa-bottle-milk"></i> Feedings: ${sFeed}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold border border-indigo-200/50">
+                        <i class="fa-solid fa-moon"></i> Sleep: ${(sSleepMin / 60).toFixed(1)}h
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 bg-pink-50 dark:bg-pink-950/20 text-pink-700 dark:text-pink-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold border border-pink-200/50">
+                        <i class="fa-solid fa-baby-carriage"></i> Nappies: ${sNappy}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold border border-emerald-200/50">
+                        <i class="fa-solid fa-pills"></i> Meds: ${sMeds}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 px-2.5 py-1 rounded-full text-[10px] font-extrabold border border-orange-200/50">
+                        <i class="fa-solid fa-temperature-half"></i> Temp: ${sTemp}
+                    </span>
+                </div>
+            `;
+
+            // Append timeline cards
+            if (selectedDayActivities.length === 0) {
+                calendarHtml += `
+                    <div class="py-12 text-center text-stone-400 dark:text-stone-500">
+                        <i class="fa-solid fa-calendar-day text-4xl mb-2 text-stone-300 dark:text-stone-800"></i>
+                        <p class="font-bold text-sm">No events logged on this day.</p>
+                        <p class="text-xs mt-1">Select another date or log a new activity!</p>
+                    </div>
+                `;
+            } else {
+                calendarHtml += `<div class="space-y-3 relative before:absolute before:left-[17px] before:top-3 before:bottom-3 before:w-[2px] before:bg-stone-100 dark:before:bg-stone-800">`;
+                selectedDayActivities.forEach(a => {
+                    const date = new Date(a.timestamp);
+                    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    let iconClass = 'fa-solid fa-dot-circle';
+                    let badgeClass = 'bg-stone-100 text-stone-800';
+                    let displayType = a.type;
+
+                    if (a.type === 'FEEDING') {
+                        iconClass = 'fa-solid fa-bottle-milk';
+                        badgeClass = 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300';
+                    } else if (a.type === 'SLEEP') {
+                        iconClass = 'fa-solid fa-moon';
+                        badgeClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300';
+                    } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
+                        iconClass = 'fa-solid fa-baby-carriage';
+                        badgeClass = 'bg-pink-100 text-pink-800 dark:bg-pink-950/40 dark:text-pink-300';
+                        displayType = 'NAPPY';
+                    } else if (a.type === 'MEDICATION') {
+                        iconClass = 'fa-solid fa-pills';
+                        badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300';
+                        displayType = 'MEDICATION';
+                    } else if (a.type === 'TEMPERATURE') {
+                        iconClass = 'fa-solid fa-temperature-half';
+                        badgeClass = 'bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300';
+                        displayType = 'TEMPERATURE';
+                    }
+
+                    let detailsText = '';
+                    try {
+                        const details = JSON.parse(a.detailsJson);
                         if (a.type === 'FEEDING') {
-                            iconClass = 'fa-solid fa-bottle-milk';
-                            badgeClass = 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300';
+                            detailsText = `${details.method || 'Bottle'}: ${details.amount || 0} ${details.unit || 'ml'} (${details.durationMinutes || 0} mins)`;
                         } else if (a.type === 'SLEEP') {
-                            iconClass = 'fa-solid fa-moon';
-                            badgeClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300';
-                        } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
-                            iconClass = 'fa-solid fa-baby-carriage';
-                            badgeClass = 'bg-pink-100 text-pink-800 dark:bg-pink-950/40 dark:text-pink-300';
-                            displayType = 'NAPPY';
-                        } else if (a.type === 'MEDICATION') {
-                            iconClass = 'fa-solid fa-pills';
-                            badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300';
-                            displayType = 'MEDICATION';
-                        }
-
-                        let detailsText = '';
-                        try {
-                            const details = JSON.parse(a.detailsJson);
-                            if (a.type === 'FEEDING') {
-                                detailsText = `${details.method || 'Bottle'}: ${details.amount || 0} ${details.unit || 'ml'} (${details.durationMinutes || 0} mins)`;
-                            } else if (a.type === 'SLEEP') {
-                                const dur = parseInt(details.durationMinutes || 0);
-                                const hrs = Math.floor(dur / 60);
-                                const mins = dur % 60;
-                                let durStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-                                if (details.startTime && details.endTime) {
-                                    const sD = new Date(details.startTime);
-                                    const eD = new Date(details.endTime);
-                                    const sStr = sD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                    const eStr = eD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                    detailsText = `Asleep for ${durStr} (${sStr} - ${eStr})`;
-                                } else {
-                                    detailsText = `Asleep for ${durStr}`;
-                                }
-                            } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
-                                const status = details.status || 'Wet';
-                                const weeSize = details.weeSize || '';
-                                const poopSize = details.poopSize || '';
-                                let parts = [];
-                                if (status === 'Wet' || status === 'Both') {
-                                    parts.push(`Wee: ${weeSize || 'Medium'}`);
-                                }
-                                if (status === 'Dirty' || status === 'Both') {
-                                    parts.push(`Poop: ${poopSize || 'Medium'}`);
-                                }
-                                if (status === 'Dry') {
-                                    parts.push('Dry');
-                                }
-                                detailsText = `Nappy: ${parts.join(', ')}`;
-                            } else if (a.type === 'MEDICATION') {
-                                detailsText = `${details.name || 'Unspecified'} (${details.dosage || 'No dosage'} - ${details.frequency || 'No frequency'})`;
+                            const dur = parseInt(details.durationMinutes || 0);
+                            const hrs = Math.floor(dur / 60);
+                            const mins = dur % 60;
+                            let durStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+                            if (details.startTime && details.endTime) {
+                                const sD = new Date(details.startTime);
+                                const eD = new Date(details.endTime);
+                                const sStr = sD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                const eStr = eD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                detailsText = `Asleep for ${durStr} (${sStr} - ${eStr})`;
+                            } else {
+                                detailsText = `Asleep for ${durStr}`;
                             }
-                        } catch(e) {
-                            detailsText = a.detailsJson;
+                        } else if (a.type === 'NAPPY' || a.type === 'DIAPER') {
+                            const status = details.status || 'Wet';
+                            const weeSize = details.weeSize || '';
+                            const poopSize = details.poopSize || '';
+                            let parts = [];
+                            if (status === 'Wet' || status === 'Both') parts.push(`Wee: ${weeSize || 'Medium'}`);
+                            if (status === 'Dirty' || status === 'Both') parts.push(`Poop: ${poopSize || 'Medium'}`);
+                            if (status === 'Dry') parts.push('Dry');
+                            detailsText = `Nappy: ${parts.join(', ')}`;
+                        } else if (a.type === 'MEDICATION') {
+                            detailsText = `${details.name || 'Unspecified'} (${details.dosage || 'No dosage'} - ${details.frequency || 'No frequency'})`;
+                        } else if (a.type === 'TEMPERATURE') {
+                            detailsText = `Temperature: ${details.temperature || 37.0}${details.unit || '°C'}`;
                         }
+                    } catch(e) {
+                        detailsText = a.detailsJson;
+                    }
 
-                        const isNew = (a.id === newlyAddedId);
-                        const animationClass = isNew ? 'new-entry-animate' : '';
-                        const sparkleSpark = isNew ? '<span class="inline-flex items-center text-amber-500 animate-bounce ml-1">✨</span>' : '';
+                    const isNew = (a.id === newlyAddedId);
+                    const animationClass = isNew ? 'new-entry-animate ring-2 ring-[#6750A4]' : 'border border-stone-100 dark:border-stone-800';
+                    const sparkleSpark = isNew ? '<span class="inline-flex items-center text-amber-500 animate-bounce ml-1">✨</span>' : '';
 
-                        rowsHtml += `
-                            <tr class="hover:bg-stone-50/50 dark:hover:bg-[#2B2930]/40 transition-colors ${animationClass}">
-                                <td class="py-3 px-3 text-[#49454F] dark:text-[#CAC4D0] font-semibold text-xs whitespace-nowrap">${timeStr}</td>
-                                <td class="py-3 px-3">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badgeClass}">
-                                        <i class="${iconClass}"></i> ${displayType}
-                                    </span>
-                                    ${sparkleSpark}
-                                </td>
-                                <td class="py-3 px-3 text-[#1D1B20] dark:text-[#E6E1E5] font-semibold">${detailsText}</td>
-                                <td class="py-3 px-3 text-[#49454F] dark:text-[#CAC4D0] italic max-w-[150px] sm:max-w-xs truncate" title="${a.notes}">${a.notes || '-'}</td>
-                                <td class="py-3 px-3 text-right">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <button onclick="openEditModal('${a.id}')" class="text-[#79747E] hover:text-[#6750A4] dark:hover:text-[#D0BCFF] transition-colors p-1" title="Edit Log">
+                    calendarHtml += `
+                        <div class="flex gap-4 relative items-start group">
+                            <!-- Timeline node circle -->
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 z-10 ${badgeClass} shadow-sm border border-white/50">
+                                <i class="${iconClass} text-xs"></i>
+                            </div>
+                            
+                            <!-- Card Content wrapper -->
+                            <div class="flex-1 bg-stone-50/50 dark:bg-[#1D1B20]/20 p-4 rounded-2xl transition-all hover:shadow-sm ${animationClass}">
+                                <div class="flex justify-between items-start">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="text-xs font-black text-[#1D1B20] dark:text-[#E6E1E5] uppercase tracking-wide">${displayType}</span>
+                                            <span class="text-[10px] text-stone-400 font-bold bg-white dark:bg-stone-900 px-1.5 py-0.5 rounded-full border border-stone-100 dark:border-stone-800">${timeStr}</span>
+                                            ${sparkleSpark}
+                                        </div>
+                                        <p class="text-sm font-semibold text-[#1D1B20] dark:text-[#E6E1E5]">${detailsText}</p>
+                                        ${a.notes ? `<p class="text-xs italic text-stone-500 mt-2 bg-white dark:bg-stone-900/50 p-2.5 rounded-xl border border-stone-100 dark:border-stone-800">${a.notes}</p>` : ''}
+                                    </div>
+                                    
+                                    <!-- Actions button row -->
+                                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onclick="openEditModal('${a.id}')" class="text-stone-400 hover:text-[#6750A4] dark:hover:text-[#D0BCFF] transition-colors p-1" title="Edit Log">
                                             <i class="fa-solid fa-pen-to-square"></i>
                                         </button>
-                                        <button onclick="deleteActivity('${a.id}')" class="text-[#79747E] hover:text-red-500 transition-colors p-1" title="Delete Log">
+                                        <button onclick="deleteActivity('${a.id}')" class="text-stone-400 hover:text-red-500 transition-colors p-1" title="Delete Log">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                        `;
-                    });
-
-                    weeksHtml += `
-                        <div class="ml-4 mr-4 mt-2 mb-2 border border-[#E7E0EC] dark:border-[#49454F] rounded-m3-md overflow-hidden bg-stone-50/30 dark:bg-[#2B2930]/20">
-                            <!-- Week Header -->
-                            <div onclick="toggleSection('section-${week.key}', 'chevron-${week.key}')" class="flex justify-between items-center bg-stone-100 dark:bg-[#2B2930]/60 px-4 py-2 cursor-pointer select-none hover:bg-stone-200/50 dark:hover:bg-[#4F378B]/20 transition-colors">
-                                <div class="flex items-center gap-2">
-                                    <i class="fa-solid fa-calendar-week text-[#625B71] dark:text-[#CCC2DC]"></i>
-                                    <span class="font-semibold text-xs text-[#49454F] dark:text-[#CAC4D0]">${week.label}</span>
-                                    <span class="text-[9px] bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 px-1.5 py-0.5 rounded-full font-bold ml-1">${week.items.length} logs</span>
                                 </div>
-                                <i id="chevron-${week.key}" class="fa-solid ${weekChevronClass} text-[10px] text-[#49454F] dark:text-[#CAC4D0]"></i>
-                            </div>
-
-                            <!-- Week Table Body -->
-                            <div id="section-${week.key}" class="${weekDisplayClass} overflow-x-auto border-t border-[#E7E0EC] dark:border-[#49454F] bg-white dark:bg-[#1D1B20]">
-                                <table class="w-full text-left border-collapse min-w-[550px]">
-                                    <thead>
-                                        <tr class="border-b border-[#E7E0EC] dark:border-[#49454F] bg-[#F7F2FA] dark:bg-[#211F26] text-[10px] text-[#625B71] dark:text-[#CCC2DC] font-bold uppercase tracking-wider">
-                                            <th class="py-2.5 px-3 w-1/4">Time</th>
-                                            <th class="py-2.5 px-3 w-1/5">Type</th>
-                                            <th class="py-2.5 px-3 w-2/5">Activity Specifics</th>
-                                            <th class="py-2.5 px-3 w-1/5">Notes</th>
-                                            <th class="py-2.5 px-3 text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="text-xs divide-y divide-[#E7E0EC] dark:divide-[#49454F]">
-                                        ${rowsHtml}
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     `;
                 });
+                calendarHtml += `</div>`;
+            }
 
-                sectionsHtml += `
-                    <div class="border border-[#E7E0EC] dark:border-[#49454F] rounded-m3-lg overflow-hidden bg-white dark:bg-[#211F26]">
-                        <!-- Accordion Header -->
-                        <div onclick="toggleMonthSection('${group.key}')" class="flex justify-between items-center bg-[#F3EDF7] dark:bg-[#2B2930] px-4 py-3 cursor-pointer select-none hover:bg-[#EADDFF]/50 dark:hover:bg-[#4F378B]/30 transition-colors">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-calendar-days text-[#6750A4] dark:text-[#D0BCFF]"></i>
-                                <span class="font-bold text-sm text-[#1D1B20] dark:text-[#E6E1E5]">${group.title}</span>
-                            </div>
-                            <i id="chevron-${group.key}" class="fa-solid ${monthChevronClass} text-xs text-[#49454F] dark:text-[#CAC4D0]"></i>
-                        </div>
-                        
-                        <!-- Accordion Body -->
-                        <div id="section-${group.key}" class="${monthDisplayClass} border-t border-[#E7E0EC] dark:border-[#49454F] bg-white dark:bg-[#1D1B20] py-2">
-                            ${weeksHtml}
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = sectionsHtml;
-            updateStats(feedCount, (sleepMinutes / 60).toFixed(1), nappyCount, medsCount);
+            calendarHtml += `</div>`;
+            container.innerHTML = calendarHtml;
             renderCharts(activities);
             newlyAddedId = null;
         }
@@ -1733,10 +1891,60 @@
             document.getElementById('stat-meds').innerText = meds || 0;
         }
 
+        function updateTrends(data) {
+            const sleepActivities = data.filter(a => a.type === 'SLEEP');
+            const shortNaps = [];
+            sleepActivities.forEach(a => {
+                try {
+                    const details = JSON.parse(a.detailsJson);
+                    const dur = parseInt(details.durationMinutes || 0);
+                    if (dur > 0 && dur < 45) {
+                        shortNaps.push({
+                            timestamp: a.timestamp,
+                            durationMinutes: dur
+                        });
+                    }
+                } catch(e){}
+            });
+
+            const count = shortNaps.length;
+            let avg = 0;
+            let timesStr = "None logged";
+
+            if (count > 0) {
+                const totalDur = shortNaps.reduce((acc, n) => acc + n.durationMinutes, 0);
+                avg = Math.round(totalDur / count);
+                
+                // Group typical times grouped to 15-minute slots
+                const hours = shortNaps.map(n => {
+                    const d = new Date(n.timestamp);
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const mm = String(Math.floor(d.getMinutes() / 15) * 15).padStart(2, '0');
+                    return `${hh}:${mm}`;
+                });
+                
+                const freqs = {};
+                hours.forEach(h => freqs[h] = (freqs[h] || 0) + 1);
+                const sortedTimes = Object.keys(freqs).sort((a, b) => freqs[b] - freqs[a]);
+                timesStr = sortedTimes.slice(0, 3).map(t => {
+                    const parts = t.split(':');
+                    const hh = parseInt(parts[0]);
+                    const mm = parts[1];
+                    const ampm = hh >= 12 ? 'PM' : 'AM';
+                    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+                    return `${h12}:${mm} ${ampm}`;
+                }).join(', ');
+            }
+
+            document.getElementById('trend-short-naps-count').innerText = count;
+            document.getElementById('trend-short-naps-avg').innerText = avg + 'm';
+            document.getElementById('trend-short-naps-times').innerText = timesStr;
+        }
+
         function renderCharts(data) {
             // Group sleep by days (last 7 days)
             const days = {};
-            const dist = { FEEDING: 0, SLEEP: 0, NAPPY: 0, MEDICATION: 0 };
+            const dist = { FEEDING: 0, SLEEP: 0, NAPPY: 0, MEDICATION: 0, TEMPERATURE: 0 };
 
             // Initialize last 7 days
             for (let i = 6; i >= 0; i--) {
@@ -1748,7 +1956,9 @@
 
             data.forEach(a => {
                 const mapType = (a.type === 'DIAPER' || a.type === 'NAPPY') ? 'NAPPY' : a.type;
-                dist[mapType] = (dist[mapType] || 0) + 1;
+                if (dist[mapType] !== undefined) {
+                    dist[mapType] = dist[mapType] + 1;
+                }
 
                 if (a.type === 'SLEEP') {
                     const dateStr = new Date(a.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -1783,7 +1993,7 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(120, 120, 120, 0.1)' } },
                         x: { grid: { display: false } }
                     }
                 }
@@ -1795,10 +2005,10 @@
             distChart = new Chart(ctxDist, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Feedings', 'Sleep', 'Nappies', 'Meds'],
+                    labels: ['Feedings', 'Sleep', 'Nappies', 'Meds', 'Temp'],
                     datasets: [{
-                        data: [dist.FEEDING, dist.SLEEP, dist.NAPPY, dist.MEDICATION || 0],
-                        backgroundColor: ['#0ea5e9', '#6366f1', '#ec4899', '#10b981'],
+                        data: [dist.FEEDING, dist.SLEEP, dist.NAPPY, dist.MEDICATION || 0, dist.TEMPERATURE || 0],
+                        backgroundColor: ['#0ea5e9', '#6366f1', '#ec4899', '#10b981', '#f97316'],
                         borderWidth: 0
                     }]
                 },
@@ -1806,12 +2016,11 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Quicksand', weight: 'bold' } } }
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Quicksand', weight: 'bold' } } }
                     },
                     cutout: '70%'
                 }
             });
-        }
 
         // Edit Activity Modal management
         function openEditModal(id) {
@@ -1942,6 +2151,24 @@
                         </div>
                     </div>
                 `;
+            } else if (act.type === 'TEMPERATURE') {
+                const temp = details.temperature || 37.0;
+                const unit = details.unit || '°C';
+                fieldsHtml = `
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Temperature</label>
+                            <input type="number" step="0.1" id="edit-temp-value" value="${temp}" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Unit</label>
+                            <select id="edit-temp-unit" class="w-full px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-800 text-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20" onchange="convertEditTempInput()">
+                                <option value="°C" ${unit === '°C' ? 'selected' : ''}>°C</option>
+                                <option value="°F" ${unit === '°F' ? 'selected' : ''}>°F</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
             }
 
             document.getElementById('edit-dynamic-fields').innerHTML = fieldsHtml;
@@ -1999,6 +2226,11 @@
                     name: document.getElementById('edit-med-name').value.trim() || 'Unspecified Medication',
                     dosage: document.getElementById('edit-med-dosage').value.trim(),
                     frequency: document.getElementById('edit-med-frequency').value.trim()
+                };
+            } else if (type === 'TEMPERATURE') {
+                details = {
+                    temperature: parseFloat(document.getElementById('edit-temp-value').value) || 37.0,
+                    unit: document.getElementById('edit-temp-unit').value
                 };
             }
 
