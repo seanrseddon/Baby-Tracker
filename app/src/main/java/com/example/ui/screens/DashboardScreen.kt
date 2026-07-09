@@ -1303,37 +1303,39 @@ fun ActivityLogCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    // Animation States
-    val alphaAnim = remember { Animatable(0f) }
-    val slideUpAnim = remember { Animatable(40f) }
-    var showSparkle by remember { mutableStateOf(true) }
+    // Animation States - Cache state to avoid repeating animation on scrolling
+    val hasAnimated = androidx.compose.runtime.saveable.rememberSaveable(key = activity.id) {
+        mutableStateOf(false)
+    }
+    val alphaAnim = remember { Animatable(if (hasAnimated.value) 1f else 0f) }
+    val slideUpAnim = remember { Animatable(if (hasAnimated.value) 0f else 40f) }
+    var showSparkle by remember { mutableStateOf(!hasAnimated.value) }
 
     LaunchedEffect(activity.id) {
-        launch {
-            alphaAnim.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(
-                    durationMillis = 800,
-                    easing = FastOutSlowInEasing
+        if (!hasAnimated.value) {
+            launch {
+                alphaAnim.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(
+                        durationMillis = 800,
+                        easing = FastOutSlowInEasing
+                    )
                 )
-            )
-        }
-        launch {
-            slideUpAnim.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(
-                    durationMillis = 800,
-                    easing = FastOutSlowInEasing
+            }
+            launch {
+                slideUpAnim.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(
+                        durationMillis = 800,
+                        easing = FastOutSlowInEasing
+                    )
                 )
-            )
+            }
+            hasAnimated.value = true
+            showSparkle = false
         }
-        showSparkle = false
     }
 
-    val formatter = SimpleDateFormat("h:mm a - MMM d", Locale.getDefault())
-    val timeStr = formatter.format(Date(activity.timestamp))
-
-    var icon = Icons.Default.Restaurant
     val categoryColor = when (activity.type) {
         "FEEDING" -> MaterialTheme.colorScheme.secondary
         "SLEEP" -> MaterialTheme.colorScheme.primary
@@ -1342,97 +1344,111 @@ fun ActivityLogCard(
         "TEMPERATURE" -> Color(0xFFF59E0B)
         else -> MaterialTheme.colorScheme.outline
     }
-    var detailsText = ""
 
-    when (activity.type) {
-        "FEEDING" -> {
-            icon = Icons.Default.Restaurant
-            try {
-                val details = JSONObject(activity.detailsJson)
-                val method = details.optString("method", "Bottle")
-                val amount = details.optDouble("amount", 0.0)
-                val unit = details.optString("unit", "oz")
-                val duration = details.optInt("durationMinutes", 0)
-                detailsText = if (method == "Solid") {
-                    "Solid feeding ($duration mins)"
-                } else {
-                    "$method: $amount $unit ($duration mins)"
+    // Cache parsing and formatting to avoid running heavy work on scroll/recomposition
+    val activityData = remember(activity) {
+        val formatter = SimpleDateFormat("h:mm a - MMM d", Locale.getDefault())
+        val timeStr = formatter.format(Date(activity.timestamp))
+
+        var icon = Icons.Default.Restaurant
+        var detailsText = ""
+
+        when (activity.type) {
+            "FEEDING" -> {
+                icon = Icons.Default.Restaurant
+                try {
+                    val details = JSONObject(activity.detailsJson)
+                    val method = details.optString("method", "Bottle")
+                    val amount = details.optDouble("amount", 0.0)
+                    val unit = details.optString("unit", "oz")
+                    val duration = details.optInt("durationMinutes", 0)
+                    detailsText = if (method == "Solid") {
+                        "Solid feeding ($duration mins)"
+                    } else {
+                        "$method: $amount $unit ($duration mins)"
+                    }
+                } catch (e: Exception) {
+                    detailsText = "Feeding activity"
                 }
-            } catch (e: Exception) {
-                detailsText = "Feeding activity"
+            }
+            "SLEEP" -> {
+                icon = Icons.Default.NightsStay
+                try {
+                    val details = JSONObject(activity.detailsJson)
+                    val dur = details.optInt("durationMinutes", 0)
+                    val hrs = dur / 60
+                    val mins = dur % 60
+                    val durStr = if (hrs > 0) "${hrs}h ${mins}m" else "${mins}m"
+                    val startTime = details.optLong("startTime", 0L)
+                    val endTime = details.optLong("endTime", 0L)
+                    detailsText = if (startTime > 0L && endTime > 0L) {
+                        val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+                        "Slept for $durStr (${sdf.format(Date(startTime))} - ${sdf.format(Date(endTime))})"
+                    } else {
+                        "Slept for $durStr"
+                    }
+                } catch (e: Exception) {
+                    detailsText = "Sleeping activity"
+                }
+            }
+            "DIAPER", "NAPPY" -> {
+                icon = Icons.Default.Opacity
+                try {
+                    val details = JSONObject(activity.detailsJson)
+                    val status = details.optString("status", "Wet")
+                    val weeSize = details.optString("weeSize", "")
+                    val poopSize = details.optString("poopSize", "")
+                    val parts = mutableListOf<String>()
+                    if (status == "Wet" || status == "Both") {
+                        parts.add("Wee: " + (if (weeSize.isNotBlank()) weeSize else "Medium"))
+                    }
+                    if (status == "Dirty" || status == "Both") {
+                        parts.add("Poop: " + (if (poopSize.isNotBlank()) poopSize else "Medium"))
+                    }
+                    if (status == "Dry") {
+                        parts.add("Dry")
+                    }
+                    detailsText = "Nappy: " + parts.joinToString(", ")
+                } catch (e: Exception) {
+                    detailsText = "Nappy activity"
+                }
+            }
+            "MEDICATION" -> {
+                icon = Icons.Default.MedicalServices
+                try {
+                    val details = JSONObject(activity.detailsJson)
+                    val name = details.optString("name", "Unspecified")
+                    val dosage = details.optString("dosage", "")
+                    val frequency = details.optString("frequency", "")
+                    val dosePart = if (dosage.isNotBlank()) " - $dosage" else ""
+                    val freqPart = if (frequency.isNotBlank()) " ($frequency)" else ""
+                    detailsText = "$name$dosePart$freqPart"
+                } catch (e: Exception) {
+                    detailsText = "Medication log"
+                }
+            }
+            "TEMPERATURE" -> {
+                icon = Icons.Default.Thermostat
+                try {
+                    val details = JSONObject(activity.detailsJson)
+                    val value = if (details.has("value")) details.optDouble("value", 0.0) else details.optDouble("temperature", 0.0)
+                    var unit = details.optString("unit", "°C")
+                    if (unit.isNotBlank() && !unit.startsWith("°") && (unit == "C" || unit == "F")) {
+                        unit = "°$unit"
+                    }
+                    detailsText = "Temperature: $value$unit"
+                } catch (e: Exception) {
+                    detailsText = "Temperature log"
+                }
             }
         }
-        "SLEEP" -> {
-            icon = Icons.Default.NightsStay
-            try {
-                val details = JSONObject(activity.detailsJson)
-                val dur = details.optInt("durationMinutes", 0)
-                val hrs = dur / 60
-                val mins = dur % 60
-                val durStr = if (hrs > 0) "${hrs}h ${mins}m" else "${mins}m"
-                val startTime = details.optLong("startTime", 0L)
-                val endTime = details.optLong("endTime", 0L)
-                detailsText = if (startTime > 0L && endTime > 0L) {
-                    val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
-                    "Slept for $durStr (${sdf.format(Date(startTime))} - ${sdf.format(Date(endTime))})"
-                } else {
-                    "Slept for $durStr"
-                }
-            } catch (e: Exception) {
-                detailsText = "Sleeping activity"
-            }
-        }
-        "DIAPER", "NAPPY" -> {
-            icon = Icons.Default.Opacity
-            try {
-                val details = JSONObject(activity.detailsJson)
-                val status = details.optString("status", "Wet")
-                val weeSize = details.optString("weeSize", "")
-                val poopSize = details.optString("poopSize", "")
-                val parts = mutableListOf<String>()
-                if (status == "Wet" || status == "Both") {
-                    parts.add("Wee: " + (if (weeSize.isNotBlank()) weeSize else "Medium"))
-                }
-                if (status == "Dirty" || status == "Both") {
-                    parts.add("Poop: " + (if (poopSize.isNotBlank()) poopSize else "Medium"))
-                }
-                if (status == "Dry") {
-                    parts.add("Dry")
-                }
-                detailsText = "Nappy: " + parts.joinToString(", ")
-            } catch (e: Exception) {
-                detailsText = "Nappy activity"
-            }
-        }
-        "MEDICATION" -> {
-            icon = Icons.Default.MedicalServices
-            try {
-                val details = JSONObject(activity.detailsJson)
-                val name = details.optString("name", "Unspecified")
-                val dosage = details.optString("dosage", "")
-                val frequency = details.optString("frequency", "")
-                val dosePart = if (dosage.isNotBlank()) " - $dosage" else ""
-                val freqPart = if (frequency.isNotBlank()) " ($frequency)" else ""
-                detailsText = "$name$dosePart$freqPart"
-            } catch (e: Exception) {
-                detailsText = "Medication log"
-            }
-        }
-        "TEMPERATURE" -> {
-            icon = Icons.Default.Thermostat
-            try {
-                val details = JSONObject(activity.detailsJson)
-                val value = if (details.has("value")) details.optDouble("value", 0.0) else details.optDouble("temperature", 0.0)
-                var unit = details.optString("unit", "°C")
-                if (unit.isNotBlank() && !unit.startsWith("°") && (unit == "C" || unit == "F")) {
-                    unit = "°$unit"
-                }
-                detailsText = "Temperature: $value$unit"
-            } catch (e: Exception) {
-                detailsText = "Temperature log"
-            }
-        }
+        Triple(timeStr, icon, detailsText)
     }
+
+    val timeStr = activityData.first
+    val icon = activityData.second
+    val detailsText = activityData.third
+
 
     Card(
         modifier = Modifier
@@ -2442,6 +2458,17 @@ fun SmartCalendar(
     val monthYearFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()) }
     val daysOfWeek = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
     
+    val activitiesByDay = remember(activities) {
+        val map = mutableMapOf<String, MutableList<BabyActivity>>()
+        val cal = Calendar.getInstance()
+        activities.forEach { act ->
+            cal.timeInMillis = act.timestamp
+            val key = "${cal.get(Calendar.YEAR)}-${cal.get(Calendar.MONTH)}-${cal.get(Calendar.DAY_OF_MONTH)}"
+            map.getOrPut(key) { mutableListOf() }.add(act)
+        }
+        map
+    }
+
     val daysList = remember(currentMonth) {
         val list = mutableListOf<Date?>()
         val cal = currentMonth.clone() as Calendar
@@ -2534,12 +2561,8 @@ fun SmartCalendar(
                                 it.get(Calendar.DAY_OF_MONTH) == dayCal.get(Calendar.DAY_OF_MONTH)
                             }
                             
-                            val dayActivities = activities.filter { act ->
-                                val actCal = Calendar.getInstance().apply { timeInMillis = act.timestamp }
-                                actCal.get(Calendar.YEAR) == dayCal.get(Calendar.YEAR) &&
-                                actCal.get(Calendar.MONTH) == dayCal.get(Calendar.MONTH) &&
-                                actCal.get(Calendar.DAY_OF_MONTH) == dayCal.get(Calendar.DAY_OF_MONTH)
-                            }
+                            val dayKey = "${dayCal.get(Calendar.YEAR)}-${dayCal.get(Calendar.MONTH)}-${dayCal.get(Calendar.DAY_OF_MONTH)}"
+                            val dayActivities = activitiesByDay[dayKey] ?: emptyList()
                             
                             Box(
                                 modifier = Modifier
