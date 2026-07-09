@@ -226,6 +226,14 @@
             </div>
             
             <div class="flex items-center gap-3">
+                <span id="sync-status-badge" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#EADDFF] dark:bg-[#4F378B]/30 text-[#6750A4] dark:text-[#D0BCFF] border border-[#D0BCFF]/50 hidden">
+                    <i class="fa-solid fa-cloud-arrow-up animate-bounce"></i>
+                    Syncing...
+                </span>
+                <span id="offline-status-badge" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 hidden">
+                    <i class="fa-solid fa-cloud-slash"></i>
+                    Offline Mode
+                </span>
                 <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#A5D6A7] border border-[#C8E6C9] dark:border-[#1B5E20]/50">
                     <span class="w-2 h-2 rounded-full bg-[#4CAF50] animate-pulse"></span>
                     Privacy Core Active
@@ -644,28 +652,236 @@
 
     <!-- Frontend scripts -->
     <script>
-        // Dark theme state tracking and helper functions
-        function toggleDarkTheme() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('dark-mode', isDark ? 'enabled' : 'disabled');
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('[Service Worker] Registered:', reg))
+                    .catch(err => console.error('[Service Worker] Registration failed:', err));
+            });
+        }
+
+        // IndexedDB Configuration & Helpers
+        const DB_NAME = 'BabyDatabase';
+        const DB_VERSION = 1;
+        let dbInstance = null;
+
+        function getDB() {
+            return new Promise((resolve, reject) => {
+                if (dbInstance) return resolve(dbInstance);
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('activities')) {
+                        db.createObjectStore('activities', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('profile')) {
+                        db.createObjectStore('profile', { keyPath: 'key' });
+                    }
+                    if (!db.objectStoreNames.contains('sleepTimer')) {
+                        db.createObjectStore('sleepTimer', { keyPath: 'key' });
+                    }
+                    if (!db.objectStoreNames.contains('syncQueue')) {
+                        db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function dbGetAll(storeName) {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function dbGet(storeName, key) {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(key);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function dbPut(storeName, item) {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(item);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function dbDelete(storeName, key) {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function dbClear(storeName) {
+            const db = await getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.clear();
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Network Status and Synchronization Queue
+        let isSyncingPending = false;
+
+        function updateConnectionStatusUI() {
+            const isOnline = navigator.onLine;
+            const offlineBadge = document.getElementById('offline-status-badge');
+            if (offlineBadge) {
+                if (!isOnline) {
+                    offlineBadge.classList.remove('hidden');
+                } else {
+                    offlineBadge.classList.add('hidden');
+                }
+            }
+        }
+
+        async function syncPendingOperations() {
+            if (isSyncingPending) return;
+            if (!navigator.onLine) return;
+
+            try {
+                const queue = await dbGetAll('syncQueue');
+                if (queue.length === 0) return;
+
+                isSyncingPending = true;
+                const syncBadge = document.getElementById('sync-status-badge');
+                if (syncBadge) syncBadge.classList.remove('hidden');
+
+                console.log(`[Sync] Found ${queue.length} pending operations to sync.`);
+
+                for (const item of queue) {
+                    const options = {
+                        method: item.method,
+                        headers: { 'Content-Type': 'application/json' }
+                    };
+                    const customKey = localStorage.getItem('gemini_api_key');
+                    if (customKey) {
+                        options.headers['x-gemini-api-key'] = customKey;
+                    }
+                    if (item.body) {
+                        options.body = JSON.stringify(item.body);
+                    }
+
+                    const res = await fetch(item.url, options);
+                    if (res.ok) {
+                        await dbDelete('syncQueue', item.id);
+                    } else {
+                        console.error(`[Sync] Failed to sync item ${item.id}:`, res.statusText);
+                        break;
+                    }
+                }
+            } catch (err) {
+                console.error('[Sync] Error during pending operations sync:', err);
+            } finally {
+                isSyncingPending = false;
+                const syncBadge = document.getElementById('sync-status-badge');
+                if (syncBadge) syncBadge.classList.add('hidden');
+                fetchData();
+            }
+        }
+
+        window.addEventListener('online', () => {
+            updateConnectionStatusUI();
+            syncPendingOperations();
+        });
+        window.addEventListener('offline', () => {
+            updateConnectionStatusUI();
+        });
+
+        // Dark theme state tracking (Reactive to System and click cycling: system -> enabled -> disabled -> system)
+        function getPreferredTheme() {
+            const saved = localStorage.getItem('dark-mode') || 'system';
+            if (saved === 'enabled') return 'dark';
+            if (saved === 'disabled') return 'light';
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function applyTheme() {
+            const theme = getPreferredTheme();
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
             updateDarkThemeUI();
+        }
+
+        function toggleDarkTheme() {
+            const saved = localStorage.getItem('dark-mode') || 'system';
+            let next;
+            if (saved === 'system') {
+                next = 'enabled';
+            } else if (saved === 'enabled') {
+                next = 'disabled';
+            } else {
+                next = 'system';
+            }
+            localStorage.setItem('dark-mode', next);
+            applyTheme();
         }
 
         function updateDarkThemeUI() {
             const icon = document.getElementById('dark-theme-icon');
             if (!icon) return;
-            if (document.documentElement.classList.contains('dark')) {
-                icon.className = 'fa-solid fa-sun text-lg text-yellow-400';
+            const saved = localStorage.getItem('dark-mode') || 'system';
+            
+            if (saved === 'system') {
+                const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (systemIsDark) {
+                    icon.className = 'fa-solid fa-circle-half-stroke text-lg text-sky-400';
+                } else {
+                    icon.className = 'fa-solid fa-circle-half-stroke text-lg text-stone-500';
+                }
+                icon.parentElement.title = 'Theme: Follow System (Click to force Dark)';
+            } else if (saved === 'enabled') {
+                icon.className = 'fa-solid fa-moon text-lg text-yellow-400';
+                icon.parentElement.title = 'Theme: Forced Dark (Click to force Light)';
             } else {
-                icon.className = 'fa-solid fa-moon text-lg';
+                icon.className = 'fa-solid fa-sun text-lg text-orange-500';
+                icon.parentElement.title = 'Theme: Forced Light (Click to follow System)';
             }
         }
 
-        // Apply dark theme initially if saved
-        if (localStorage.getItem('dark-mode') === 'enabled') {
-            document.documentElement.classList.add('dark');
-        }
-        document.addEventListener('DOMContentLoaded', updateDarkThemeUI);
+        // Apply theme immediately
+        applyTheme();
+
+        // Listen for system color theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            applyTheme();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDarkThemeUI();
+            updateConnectionStatusUI();
+        });
 
         function toggleFormTimeCustom() {
             const preset = document.getElementById('form-time-preset').value;
@@ -789,16 +1005,33 @@
         }
 
         async function fetchProfile() {
+            // First load from local IndexedDB cache for instant display
+            try {
+                const cachedName = await dbGet('profile', 'babyName');
+                const cachedDob = await dbGet('profile', 'babyDob');
+                if (cachedName) profileName = cachedName.value;
+                if (cachedDob) profileDob = cachedDob.value;
+                updateProfileUI();
+            } catch (err) {
+                console.error('Error loading cached profile:', err);
+            }
+
+            // Then try to fetch from network to refresh
             try {
                 const res = await fetch('/api/profile');
                 if (res.ok) {
                     const data = await res.json();
                     profileName = data.babyName || "Baby";
                     profileDob = data.babyDob || 0;
+                    
+                    // Update cache
+                    await dbPut('profile', { key: 'babyName', value: profileName });
+                    await dbPut('profile', { key: 'babyDob', value: profileDob });
+                    
                     updateProfileUI();
                 }
             } catch (err) {
-                console.error('Error fetching profile:', err);
+                console.log('Using cached profile as network is offline/unreachable:', err);
             }
         }
 
@@ -861,26 +1094,45 @@
                 dobMs = new Date(dobInput).getTime();
             }
 
-            try {
-                const res = await fetch('/api/profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        babyName: nameInput,
-                        babyDob: dobMs
-                    })
-                });
+            const body = {
+                babyName: nameInput,
+                babyDob: dobMs
+            };
 
-                if (res.ok) {
-                    profileName = nameInput;
-                    profileDob = dobMs;
-                    updateProfileUI();
-                    toggleProfileEdit();
-                    fetchData();
-                }
+            // Update in memory and UI immediately
+            profileName = nameInput;
+            profileDob = dobMs;
+            updateProfileUI();
+            toggleProfileEdit();
+
+            // Update local IndexedDB cache immediately
+            try {
+                await dbPut('profile', { key: 'babyName', value: nameInput });
+                await dbPut('profile', { key: 'babyDob', value: dobMs });
             } catch (err) {
-                console.error('Error saving profile:', err);
-                alert('Failed to save profile settings.');
+                console.error('Failed to update profile in local database:', err);
+            }
+
+            // Sync with backend
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch('/api/profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (res.ok) {
+                        fetchData();
+                        return;
+                    }
+                }
+                
+                // If offline or request fails, save to queue
+                await dbPut('syncQueue', { url: '/api/profile', method: 'POST', body });
+                console.log('[Offline] Profile saved locally and added to sync queue.');
+            } catch (err) {
+                await dbPut('syncQueue', { url: '/api/profile', method: 'POST', body });
+                console.log('[Offline Exception] Profile saved locally and added to sync queue:', err);
             }
         }
 
@@ -989,12 +1241,37 @@
             const refreshIcon = document.getElementById('refresh-icon');
             if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
+            // 1. Try to load activities and timer from local IndexedDB cache first (instant display!)
+            try {
+                const cachedActivities = await dbGetAll('activities');
+                if (cachedActivities && cachedActivities.length > 0) {
+                    activities = cachedActivities;
+                    renderData();
+                }
+                const cachedTimer = await dbGet('sleepTimer', 'active');
+                if (cachedTimer) {
+                    activeSleepTimerStart = cachedTimer.startTime;
+                } else {
+                    activeSleepTimerStart = null;
+                }
+                renderSleepTimerUI();
+            } catch (err) {
+                console.error('Error loading cached data:', err);
+            }
+
+            // 2. Try fetching from network to get the freshest state
             try {
                 // Fetch activities
                 const res = await fetch('/api/activities');
                 if (res.ok) {
                     activities = await res.json();
                     renderData();
+                    
+                    // Update cache
+                    await dbClear('activities');
+                    for (const act of activities) {
+                        await dbPut('activities', act);
+                    }
                 }
 
                 // Fetch active sleep timer start time
@@ -1002,12 +1279,18 @@
                 if (timerRes.ok) {
                     const timerData = await timerRes.json();
                     activeSleepTimerStart = timerData.startTime;
+                    if (activeSleepTimerStart) {
+                        await dbPut('sleepTimer', { key: 'active', startTime: activeSleepTimerStart });
+                    } else {
+                        await dbDelete('sleepTimer', 'active');
+                    }
                 } else {
                     activeSleepTimerStart = null;
+                    await dbDelete('sleepTimer', 'active');
                 }
                 renderSleepTimerUI();
             } catch (err) {
-                console.error('Error fetching activities or timer:', err);
+                console.log('Using cached activities/timer as network is offline/unreachable:', err);
             } finally {
                 if (refreshIcon) {
                     setTimeout(() => {
@@ -1148,31 +1431,57 @@
 
         async function startWebSleepTimer() {
             const startTime = Date.now();
+            
+            // 1. Update in-memory state and UI immediately
+            activeSleepTimerStart = startTime;
+            renderSleepTimerUI();
+
+            // 2. Save to local IndexedDB cache immediately
             try {
-                const res = await fetch('/api/sleep-timer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ startTime })
-                });
-                if (res.ok) {
-                    activeSleepTimerStart = startTime;
-                    renderSleepTimerUI();
+                await dbPut('sleepTimer', { key: 'active', startTime });
+            } catch (err) {
+                console.error('Failed to save sleep timer to local database:', err);
+            }
+
+            // 3. Try network or queue
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch('/api/sleep-timer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ startTime })
+                    });
+                    if (res.ok) return;
                 }
+                await dbPut('syncQueue', { url: '/api/sleep-timer', method: 'POST', body: { startTime } });
             } catch (e) {
-                console.error('Error starting sleep timer:', e);
+                await dbPut('syncQueue', { url: '/api/sleep-timer', method: 'POST', body: { startTime } });
             }
         }
 
         async function cancelWebSleepTimer() {
             if (!confirm("Are you sure you want to cancel the sleep timer? The elapsed time will be discarded.")) return;
+            
+            // 1. Update in-memory state and UI immediately
+            activeSleepTimerStart = null;
+            renderSleepTimerUI();
+
+            // 2. Delete from local cache
             try {
-                const res = await fetch('/api/sleep-timer', { method: 'DELETE' });
-                if (res.ok) {
-                    activeSleepTimerStart = null;
-                    renderSleepTimerUI();
+                await dbDelete('sleepTimer', 'active');
+            } catch (err) {
+                console.error('Failed to delete sleep timer from local database:', err);
+            }
+
+            // 3. Try network or queue
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch('/api/sleep-timer', { method: 'DELETE' });
+                    if (res.ok) return;
                 }
+                await dbPut('syncQueue', { url: '/api/sleep-timer', method: 'DELETE' });
             } catch (e) {
-                console.error('Error canceling sleep timer:', e);
+                await dbPut('syncQueue', { url: '/api/sleep-timer', method: 'DELETE' });
             }
         }
 
@@ -1196,27 +1505,43 @@
                 notes
             };
 
+            // 1. Update in-memory state immediately
+            activeSleepTimerStart = null;
+            activities.push(activity);
+            renderData();
+            renderSleepTimerUI();
+            document.getElementById('form-notes').value = '';
+
+            // 2. Update local IndexedDB caches immediately
             try {
-                // 1. Create the sleep activity
-                const res = await fetch('/api/activities', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(activity)
-                });
-                
-                if (res.ok) {
-                    // 2. Delete the sleep timer from the server
-                    await fetch('/api/sleep-timer', { method: 'DELETE' });
-                    
-                    activeSleepTimerStart = null;
-                    newlyAddedId = id;
-                    document.getElementById('form-notes').value = '';
-                    
-                    // 3. Refresh
-                    await fetchData();
+                await dbDelete('sleepTimer', 'active');
+                await dbPut('activities', activity);
+            } catch (err) {
+                console.error('Failed to update local cache during sleep timer stop:', err);
+            }
+
+            // 3. Try network or queue
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch('/api/activities', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(activity)
+                    });
+                    if (res.ok) {
+                        await fetch('/api/sleep-timer', { method: 'DELETE' });
+                        newlyAddedId = id;
+                        fetchData();
+                        return;
+                    }
                 }
+                await dbPut('syncQueue', { url: '/api/activities', method: 'POST', body: activity });
+                await dbPut('syncQueue', { url: '/api/sleep-timer', method: 'DELETE' });
+                console.log('[Offline] Sleep activity and timer deletion queued.');
             } catch (e) {
-                console.error('Error stopping and saving sleep timer:', e);
+                await dbPut('syncQueue', { url: '/api/activities', method: 'POST', body: activity });
+                await dbPut('syncQueue', { url: '/api/sleep-timer', method: 'DELETE' });
+                console.log('[Offline Exception] Sleep activity and timer deletion queued:', e);
             }
         }
 
@@ -1297,49 +1622,83 @@
                 notes
             };
 
+            // 1. Immediately reset form and update calendar visually
+            document.getElementById('form-notes').value = '';
+            if (document.getElementById('med-name')) {
+                document.getElementById('med-name').value = '';
+                document.getElementById('med-dosage').value = '';
+                document.getElementById('med-frequency').value = '';
+            }
+            if (document.getElementById('temp-value')) {
+                document.getElementById('temp-value').value = '37.0';
+                document.getElementById('temp-unit').value = '°C';
+            }
+            const addedDate = new Date(timestamp);
+            currentYear = addedDate.getFullYear();
+            currentMonth = addedDate.getMonth();
+            selectedDay = addedDate.getDate();
+            newlyAddedId = id;
+
+            // 2. Immediately update in-memory state and render UI
+            activities.push(body);
+            renderData();
+
+            // 3. Immediately update local IndexedDB cache
             try {
-                const res = await fetch('/api/activities', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
-                if (res.ok) {
-                    // Reset form notes
-                    document.getElementById('form-notes').value = '';
-                    if (document.getElementById('med-name')) {
-                        document.getElementById('med-name').value = '';
-                        document.getElementById('med-dosage').value = '';
-                        document.getElementById('med-frequency').value = '';
-                    }
-                    if (document.getElementById('temp-value')) {
-                        document.getElementById('temp-value').value = '37.0';
-                        document.getElementById('temp-unit').value = '°C';
-                    }
-                    
-                    // Navigate calendar to newly added item's date
-                    const addedDate = new Date(timestamp);
-                    currentYear = addedDate.getFullYear();
-                    currentMonth = addedDate.getMonth();
-                    selectedDay = addedDate.getDate();
-
-                    newlyAddedId = id;
-                    fetchData();
-                }
+                await dbPut('activities', body);
             } catch (err) {
-                console.error('Error saving activity:', err);
+                console.error('Failed to cache new activity in IndexedDB:', err);
+            }
+
+            // 4. Try network send or queue it
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch('/api/activities', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (res.ok) {
+                        fetchData();
+                        return;
+                    }
+                }
+                await dbPut('syncQueue', { url: '/api/activities', method: 'POST', body });
+                console.log('[Offline] Activity added locally and queued for synchronization.');
+            } catch (err) {
+                await dbPut('syncQueue', { url: '/api/activities', method: 'POST', body });
+                console.log('[Offline Exception] Activity added locally and queued for synchronization:', err);
             }
         }
 
         async function deleteActivity(id) {
             if (!confirm('Are you sure you want to delete this activity log?')) return;
+
+            // 1. Immediately update in-memory state and render UI
+            activities = activities.filter(act => act.id !== id);
+            renderData();
+
+            // 2. Immediately delete from local IndexedDB cache
             try {
-                const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    fetchData();
-                }
+                await dbDelete('activities', id);
             } catch (err) {
-                console.error('Error deleting activity:', err);
+                console.error('Failed to delete activity from local database:', err);
+            }
+
+            // 3. Try network send or queue it
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        fetchData();
+                        return;
+                    }
+                }
+                await dbPut('syncQueue', { url: `/api/activities/${id}`, method: 'DELETE' });
+                console.log('[Offline] Activity deleted locally and queued for synchronization.');
+            } catch (err) {
+                await dbPut('syncQueue', { url: `/api/activities/${id}`, method: 'DELETE' });
+                console.log('[Offline Exception] Activity deletion queued:', err);
             }
         }
 
@@ -1558,21 +1917,37 @@
             const confirmed2 = confirm("⚠️ DOUBLE VERIFICATION: This action CANNOT BE UNDONE. Please ensure you have backed up or exported your CSV if needed.\n\nType 'OK' or click OK to proceed with erasing all data.");
             if (!confirmed2) return;
 
+            // 1. Immediately update local state
+            activities = [];
+            renderData();
+
+            // 2. Clear local cache and sync queue
             try {
-                const res = await fetch('/api/activities', {
-                    method: 'DELETE'
-                });
-                if (res.ok) {
-                    activities = [];
-                    renderData();
-                    alert("All synced data has been successfully deleted from the app and server database.");
-                } else {
-                    const errData = await res.json();
-                    alert("Failed to delete server database: " + (errData.error || "Unknown error"));
-                }
+                await dbClear('activities');
+                await dbClear('syncQueue'); // clear queue since we are deleting everything anyway
+                await dbDelete('sleepTimer', 'active');
             } catch (err) {
-                console.error("Error erasing all data:", err);
-                alert("Network error or server unreachable. Could not delete server data.");
+                console.error("Failed to clear local database cache:", err);
+            }
+
+            // 3. Try to delete on server
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch('/api/activities', {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        alert("All data has been successfully deleted from local cache and server.");
+                        return;
+                    }
+                }
+                
+                // If offline or request fails, add DELETE action to syncQueue
+                await dbPut('syncQueue', { url: '/api/activities', method: 'DELETE' });
+                alert("App is offline. Local data cleared; server deletion has been queued to sync when connection is restored.");
+            } catch (err) {
+                await dbPut('syncQueue', { url: '/api/activities', method: 'DELETE' });
+                alert("Network error. Local data cleared; server deletion has been queued to sync when connection is restored.");
             }
         }
 
@@ -2243,22 +2618,38 @@
                 notes
             };
 
-            try {
-                const res = await fetch(`/api/activities/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
+            const updatedActivity = { id, ...body };
 
-                if (res.ok) {
-                    closeEditModal();
-                    fetchData();
-                } else {
-                    alert('Failed to save changes.');
-                }
+            // 1. Immediately update in-memory state and UI
+            activities = activities.map(act => act.id === id ? updatedActivity : act);
+            renderData();
+            closeEditModal();
+
+            // 2. Immediately update local IndexedDB cache
+            try {
+                await dbPut('activities', updatedActivity);
             } catch (err) {
-                console.error('Error saving edited activity:', err);
-                alert('Connection error. Failed to save changes.');
+                console.error('Failed to update activity in local database:', err);
+            }
+
+            // 3. Try network or queue
+            try {
+                if (navigator.onLine) {
+                    const res = await fetch(`/api/activities/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (res.ok) {
+                        fetchData();
+                        return;
+                    }
+                }
+                await dbPut('syncQueue', { url: `/api/activities/${id}`, method: 'PUT', body });
+                console.log('[Offline] Activity update cached and queued.');
+            } catch (err) {
+                await dbPut('syncQueue', { url: `/api/activities/${id}`, method: 'PUT', body });
+                console.log('[Offline Exception] Activity update cached and queued:', err);
             }
         }
 
@@ -2663,24 +3054,44 @@
             await fetchProfile();
             await fetchData();
 
-            // Periodically check for state updates (e.g., active sleep timer synced with mobile app) every 10s
+            // Run initial sync on startup if online
+            if (navigator.onLine) {
+                await syncPendingOperations();
+            }
+
+            // Periodically check for state updates and sync pending offline items every 10s
             setInterval(async () => {
-                try {
-                    const res = await fetch('/api/activities');
-                    if (res.ok) {
-                        activities = await res.json();
-                        renderData();
+                if (navigator.onLine) {
+                    await syncPendingOperations();
+                    try {
+                        const res = await fetch('/api/activities');
+                        if (res.ok) {
+                            activities = await res.json();
+                            renderData();
+                            
+                            // Update IndexedDB cache
+                            await dbClear('activities');
+                            for (const act of activities) {
+                                await dbPut('activities', act);
+                            }
+                        }
+                        const timerRes = await fetch('/api/sleep-timer');
+                        if (timerRes.ok) {
+                            const timerData = await timerRes.json();
+                            activeSleepTimerStart = timerData.startTime;
+                            if (activeSleepTimerStart) {
+                                await dbPut('sleepTimer', { key: 'active', startTime: activeSleepTimerStart });
+                            } else {
+                                await dbDelete('sleepTimer', 'active');
+                            }
+                        } else {
+                            activeSleepTimerStart = null;
+                            await dbDelete('sleepTimer', 'active');
+                        }
+                        renderSleepTimerUI();
+                    } catch (e) {
+                        console.error('Error in background state polling:', e);
                     }
-                    const timerRes = await fetch('/api/sleep-timer');
-                    if (timerRes.ok) {
-                        const timerData = await timerRes.json();
-                        activeSleepTimerStart = timerData.startTime;
-                    } else {
-                        activeSleepTimerStart = null;
-                    }
-                    renderSleepTimerUI();
-                } catch (e) {
-                    console.error('Error in background state polling:', e);
                 }
             }, 10000);
         }

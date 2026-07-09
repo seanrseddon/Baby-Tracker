@@ -20,6 +20,7 @@ import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 
@@ -32,9 +33,14 @@ class MainActivity : ComponentActivity() {
             val babyViewModel: BabyViewModel = viewModel(
                 factory = BabyViewModel.provideFactory(application)
             )
-            val isDarkThemeState by babyViewModel.isDarkTheme.collectAsState()
+            val themeMode by babyViewModel.themeMode.collectAsState()
+            val useDarkTheme = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
 
-            MyApplicationTheme(darkTheme = isDarkThemeState) {
+            MyApplicationTheme(darkTheme = useDarkTheme) {
                 MainAppNavHost(babyViewModel)
             }
         }

@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+import androidx.compose.foundation.isSystemInDarkTheme
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -42,7 +44,6 @@ fun SettingsScreen(
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncError by viewModel.syncError.collectAsState()
     val syncSuccess by viewModel.syncSuccess.collectAsState()
-    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
 
     var tempBabyName by remember { mutableStateOf(babyName) }
     var tempBabyDob by remember(babyDob) { mutableStateOf(babyDob) }
@@ -215,48 +216,62 @@ fun SettingsScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Theme Preferences",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    val themeMode by viewModel.themeMode.collectAsState()
+                    val isDark = when (themeMode) {
+                        "dark" -> true
+                        "light" -> false
+                        else -> isSystemInDarkTheme()
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Column {
+                            Text(
+                                text = "Theme Mode",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Select dynamic system sync or choose dark/light preferences",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Column {
+                        listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (mode, label) ->
+                            val isSelected = themeMode == mode
+                            Button(
+                                onClick = { viewModel.updateThemeMode(mode) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("theme_button_$mode"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
                                 Text(
-                                    text = "Dark Theme",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Enable dark mode for night viewing",
+                                    text = label,
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-
-                        Switch(
-                            checked = isDarkTheme,
-                            onCheckedChange = { viewModel.updateDarkTheme(it) },
-                            modifier = Modifier.testTag("dark_theme_switch")
-                        )
                     }
                 }
             }

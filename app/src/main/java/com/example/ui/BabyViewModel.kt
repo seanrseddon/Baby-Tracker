@@ -68,6 +68,15 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean("is_dark_theme", false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
+    private val _themeMode = MutableStateFlow(
+        prefs.getString("theme_mode", null) ?: if (prefs.contains("is_dark_theme")) {
+            if (prefs.getBoolean("is_dark_theme", false)) "dark" else "light"
+        } else {
+            "system"
+        }
+    )
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
     // Sync state
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
@@ -118,6 +127,21 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     fun updateDarkTheme(enabled: Boolean) {
         _isDarkTheme.value = enabled
         prefs.edit().putBoolean("is_dark_theme", enabled).apply()
+        // Keep themeMode in sync for simple toggle backward compatibility
+        updateThemeMode(if (enabled) "dark" else "light")
+    }
+
+    fun updateThemeMode(mode: String) {
+        _themeMode.value = mode
+        prefs.edit().putString("theme_mode", mode).apply()
+        // Keep isDarkTheme in sync for backward compatibility
+        if (mode == "dark") {
+            _isDarkTheme.value = true
+            prefs.edit().putBoolean("is_dark_theme", true).apply()
+        } else if (mode == "light") {
+            _isDarkTheme.value = false
+            prefs.edit().putBoolean("is_dark_theme", false).apply()
+        }
     }
 
     fun updateActivity(activity: BabyActivity) {
