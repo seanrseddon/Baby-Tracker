@@ -50,6 +50,7 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit
 ) {
     val activities by viewModel.activities.collectAsState()
+    val view = androidx.compose.ui.platform.LocalView.current
     val babyName by viewModel.babyName.collectAsState()
     val babyDob by viewModel.babyDob.collectAsState()
     val aiRecommendation by viewModel.aiRecommendation.collectAsState()
@@ -113,7 +114,7 @@ fun DashboardScreen(
             actCal.get(Calendar.YEAR) == selectedDate.get(Calendar.YEAR) &&
             actCal.get(Calendar.MONTH) == selectedDate.get(Calendar.MONTH) &&
             actCal.get(Calendar.DAY_OF_MONTH) == selectedDate.get(Calendar.DAY_OF_MONTH)
-        }.sortedByDescending { it.timestamp }
+        }.sortedBy { it.timestamp }
     }
 
     val sleepTrends = remember(activities) {
@@ -257,37 +258,6 @@ fun DashboardScreen(
                             tint = MaterialTheme.colorScheme.outline
                         )
                     }
-                    Box {
-                        IconButton(
-                            onClick = { showCsvMenu = true },
-                            modifier = Modifier.testTag("csv_menu_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More Options",
-                                tint = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showCsvMenu,
-                            onDismissRequest = { showCsvMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("📝 Import CSV (Paste)") },
-                                onClick = {
-                                    showCsvMenu = false
-                                    showCsvImportDialog = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("📤 Export CSV") },
-                                onClick = {
-                                    showCsvMenu = false
-                                    showCsvExportDialog = true
-                                }
-                            )
-                        }
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -296,7 +266,12 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAdd,
+                onClick = {
+                    try {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                    } catch (e: Exception) {}
+                    onNavigateToAdd()
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
@@ -724,7 +699,12 @@ fun DashboardScreen(
 
                                 // Fetch/Analyze Button
                                 Button(
-                                    onClick = { viewModel.analyzeSleepPattern() },
+                                    onClick = {
+                                        try {
+                                            view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                                        } catch (e: Exception) {}
+                                        viewModel.analyzeSleepPattern()
+                                    },
                                     enabled = !isAnalyzingSleep,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1326,7 +1306,6 @@ fun ActivityLogCard(
     // Animation States
     val alphaAnim = remember { Animatable(0f) }
     val slideUpAnim = remember { Animatable(40f) }
-    val shimmerOffsetAnim = remember { Animatable(-250f) }
     var showSparkle by remember { mutableStateOf(true) }
 
     LaunchedEffect(activity.id) {
@@ -1348,13 +1327,6 @@ fun ActivityLogCard(
                 )
             )
         }
-        shimmerOffsetAnim.animateTo(
-            targetValue = 700f,
-            animationSpec = tween(
-                durationMillis = 1400,
-                easing = LinearEasing
-            )
-        )
         showSparkle = false
     }
 
@@ -1462,22 +1434,6 @@ fun ActivityLogCard(
         }
     }
 
-    val shimmerBrush = if (shimmerOffsetAnim.value < 700f) {
-        androidx.compose.ui.graphics.Brush.linearGradient(
-            colors = listOf(
-                Color.Transparent,
-                categoryColor.copy(alpha = 0.05f),
-                categoryColor.copy(alpha = 0.22f),
-                categoryColor.copy(alpha = 0.05f),
-                Color.Transparent
-            ),
-            start = androidx.compose.ui.geometry.Offset(shimmerOffsetAnim.value, 0f),
-            end = androidx.compose.ui.geometry.Offset(shimmerOffsetAnim.value + 160f, 160f)
-        )
-    } else {
-        null
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1485,23 +1441,13 @@ fun ActivityLogCard(
             .graphicsLayer {
                 alpha = alphaAnim.value
                 translationY = slideUpAnim.value
-            }
-            .then(
-                if (shimmerBrush != null) {
-                    Modifier.drawWithContent {
-                        drawContent()
-                        drawRect(brush = shimmerBrush)
-                    }
-                } else {
-                    Modifier
-                }
-            ),
-        shape = RoundedCornerShape(16.dp),
+            },
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
+            defaultElevation = 2.dp
         )
     ) {
         Row(

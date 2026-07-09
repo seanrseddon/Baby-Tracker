@@ -67,6 +67,7 @@ fun AddActivityScreen(
     var selectedCustomTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val customCalendar = remember(selectedCustomTime) {
         Calendar.getInstance().apply { timeInMillis = selectedCustomTime }
     }
@@ -714,6 +715,9 @@ fun AddActivityScreen(
             // Save Button
             Button(
                 onClick = {
+                    try {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                    } catch (e: Exception) {}
                     val details = JSONObject()
                     when (selectedType) {
                         "FEEDING" -> {
@@ -796,10 +800,16 @@ fun TypeTabButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val view = androidx.compose.ui.platform.LocalView.current
     Card(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
+            .clickable {
+                try {
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                } catch (e: Exception) {}
+                onClick()
+            }
             .testTag("type_tab_$label"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(

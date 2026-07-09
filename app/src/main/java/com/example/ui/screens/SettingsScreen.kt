@@ -51,6 +51,7 @@ fun SettingsScreen(
 
     var pastedCsv by remember { mutableStateOf("") }
     var showPasteArea by remember { mutableStateOf(false) }
+    var showCsvExportDialog by remember { mutableStateOf(false) }
 
     val fileContext = LocalContext.current
     val csvPickerLauncher = rememberLauncherForActivityResult(
@@ -71,6 +72,7 @@ fun SettingsScreen(
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val calendar = Calendar.getInstance()
     if (tempBabyDob > 0) {
         calendar.timeInMillis = tempBabyDob
@@ -194,6 +196,9 @@ fun SettingsScreen(
 
                     Button(
                         onClick = { 
+                            try {
+                                view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                            } catch (e: Exception) {}
                             viewModel.updateBabyName(tempBabyName)
                             viewModel.updateBabyDob(tempBabyDob)
                         },
@@ -254,7 +259,12 @@ fun SettingsScreen(
                         listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (mode, label) ->
                             val isSelected = themeMode == mode
                             Button(
-                                onClick = { viewModel.updateThemeMode(mode) },
+                                onClick = { 
+                                    try {
+                                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                                    } catch (e: Exception) {}
+                                    viewModel.updateThemeMode(mode) 
+                                },
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("theme_button_$mode"),
@@ -328,6 +338,9 @@ fun SettingsScreen(
 
                         Button(
                             onClick = {
+                                try {
+                                    view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                                } catch (e: Exception) {}
                                 viewModel.updateServerUrl(tempServerUrl)
                                 viewModel.triggerSync()
                             },
@@ -386,6 +399,97 @@ fun SettingsScreen(
                 }
             }
 
+            // Section: Backup & Data Mobility
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Data Backup & Mobility",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Text(
+                        text = "Import your baby's activity logs from a CSV file, paste text logs directly, or export your data at any time. Supports standard formats.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { 
+                                try {
+                                    view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                                } catch (e: Exception) {}
+                                try {
+                                    csvPickerLauncher.launch("*/*")
+                                } catch (e: Exception) {
+                                    Toast.makeText(fileContext, "Error launching file picker: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.Attachment, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Import File", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { 
+                                try {
+                                    view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                                } catch (e: Exception) {}
+                                showPasteArea = true 
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Paste CSV", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Button(
+                        onClick = { 
+                            try {
+                                view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                            } catch (e: Exception) {}
+                            showCsvExportDialog = true 
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    ) {
+                        Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Export to CSV / Copy", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
             // Danger Zone Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -414,6 +518,154 @@ fun SettingsScreen(
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
+
+                    if (showPasteArea) {
+                        var importStatusMessage by remember { mutableStateOf<String?>(null) }
+                        var isImportError by remember { mutableStateOf(false) }
+
+                        AlertDialog(
+                            onDismissRequest = { 
+                                showPasteArea = false
+                                importStatusMessage = null
+                                pastedCsv = ""
+                            },
+                            title = {
+                                Text(
+                                    text = "Import Activities from CSV",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp
+                                )
+                            },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(
+                                        text = "Paste Huckleberry or custom CSV formatted text below. Column headers like 'Type', 'Start Time', 'Duration', 'Notes' are supported case-insensitively.",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    
+                                    OutlinedTextField(
+                                        value = pastedCsv,
+                                        onValueChange = { pastedCsv = it },
+                                        label = { Text("Paste CSV Content") },
+                                        placeholder = { Text("Type,Start Time,Duration,Notes\nSLEEP,2026-07-09 13:00:00,45,Nap time") },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                                    )
+
+                                    if (importStatusMessage != null) {
+                                        Text(
+                                            text = importStatusMessage!!,
+                                            color = if (isImportError) MaterialTheme.colorScheme.error else Color(0xFF10B981),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        if (pastedCsv.isBlank()) {
+                                            importStatusMessage = "Please paste some CSV text first."
+                                            isImportError = true
+                                            return@Button
+                                        }
+                                        viewModel.importCsv(pastedCsv) { success, count, msg ->
+                                            isImportError = !success
+                                            importStatusMessage = msg
+                                            if (success) {
+                                                pastedCsv = ""
+                                            }
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Import")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { 
+                                    showPasteArea = false
+                                    importStatusMessage = null
+                                    pastedCsv = ""
+                                }) {
+                                    Text("Dismiss")
+                                }
+                            }
+                        )
+                    }
+
+                    if (showCsvExportDialog) {
+                        val csvData = remember { viewModel.exportActivitiesToCsv() }
+                        val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                        var copiedConfirmation by remember { mutableStateOf(false) }
+
+                        AlertDialog(
+                            onDismissRequest = { 
+                                showCsvExportDialog = false
+                                copiedConfirmation = false
+                            },
+                            title = {
+                                Text(
+                                    text = "Exported CSV Activities",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp
+                                )
+                            },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(
+                                        text = "Here is your raw CSV containing all logged activities. You can copy it to your clipboard to save or import it elsewhere.",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    
+                                    OutlinedTextField(
+                                        value = csvData,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(180.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                                    )
+
+                                    if (copiedConfirmation) {
+                                        Text(
+                                            text = "Copied to clipboard successfully!",
+                                            color = Color(0xFF10B981),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(csvData))
+                                        copiedConfirmation = true
+                                    },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Copy Raw CSV")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { 
+                                    showCsvExportDialog = false
+                                    copiedConfirmation = false
+                                }) {
+                                    Text("Close")
+                                }
+                            }
+                        )
+                    }
 
                     var showConfirmDialog by remember { mutableStateOf(false) }
 
@@ -446,7 +698,12 @@ fun SettingsScreen(
                     }
 
                     Button(
-                        onClick = { showConfirmDialog = true },
+                        onClick = { 
+                            try {
+                                view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                            } catch (e: Exception) {}
+                            showConfirmDialog = true 
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("erase_all_data_button"),

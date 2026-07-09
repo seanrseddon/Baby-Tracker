@@ -17,34 +17,34 @@
                 extend: {
                     colors: {
                         m3Primary: {
-                            light: '#6750A4',
-                            DEFAULT: '#6750A4',
-                            dark: '#D0BCFF'
+                            light: 'var(--m3-primary-light)',
+                            DEFAULT: 'var(--m3-primary-light)',
+                            dark: 'var(--m3-primary-dark)'
                         },
                         m3PrimaryContainer: {
-                            light: '#EADDFF',
-                            DEFAULT: '#EADDFF',
-                            dark: '#4F378B'
+                            light: 'var(--m3-primary-container-light)',
+                            DEFAULT: 'var(--m3-primary-container-light)',
+                            dark: 'var(--m3-primary-container-dark)'
                         },
                         m3Secondary: {
-                            light: '#625B71',
-                            DEFAULT: '#625B71',
-                            dark: '#CCC2DC'
+                            light: 'var(--m3-secondary-light)',
+                            DEFAULT: 'var(--m3-secondary-light)',
+                            dark: 'var(--m3-secondary-dark)'
                         },
                         m3SecondaryContainer: {
-                            light: '#E8DEF8',
-                            DEFAULT: '#E8DEF8',
-                            dark: '#4A4458'
+                            light: 'var(--m3-secondary-container-light)',
+                            DEFAULT: 'var(--m3-secondary-container-light)',
+                            dark: 'var(--m3-secondary-container-dark)'
                         },
                         m3Tertiary: {
-                            light: '#7D5260',
-                            DEFAULT: '#7D5260',
-                            dark: '#EFB8C8'
+                            light: 'var(--m3-tertiary-light)',
+                            DEFAULT: 'var(--m3-tertiary-light)',
+                            dark: 'var(--m3-tertiary-dark)'
                         },
                         m3TertiaryContainer: {
-                            light: '#FFD8E4',
-                            DEFAULT: '#FFD8E4',
-                            dark: '#633B48'
+                            light: 'var(--m3-tertiary-container-light)',
+                            DEFAULT: 'var(--m3-tertiary-container-light)',
+                            dark: 'var(--m3-tertiary-container-dark)'
                         },
                         m3Surface: {
                             light: '#FEF7FF',
@@ -92,6 +92,22 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300..800&family=Plus+Jakarta+Sans:wght@300..800&display=swap');
+        
+        :root {
+            /* Default Theme: Material 3 Blue */
+            --m3-primary-light: #005FAF;
+            --m3-primary-dark: #A4C9FF;
+            --m3-primary-container-light: #D4E3FF;
+            --m3-primary-container-dark: #004786;
+            --m3-secondary-light: #535F70;
+            --m3-secondary-dark: #BBC7DB;
+            --m3-secondary-container-light: #D7E3F7;
+            --m3-secondary-container-dark: #3C4758;
+            --m3-tertiary-light: #6B5778;
+            --m3-tertiary-dark: #D7C0E5;
+            --m3-tertiary-container-light: #F2DAFF;
+            --m3-tertiary-container-dark: #52405E;
+        }
         
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -267,6 +283,19 @@
                                     </button>
                                 </div>
                                 <p id="gemini-key-status" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold"></p>
+                            </div>
+
+                            <hr class="border-[#E7E0EC] dark:border-[#49454F]">
+
+                            <!-- App Theme Selection -->
+                            <div class="space-y-1.5">
+                                <label class="block text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider">App Theme Option</label>
+                                <div class="grid grid-cols-4 gap-1">
+                                    <button onclick="changeAppTheme('blue')" id="theme-btn-blue" class="py-1 px-1.5 rounded-full text-[9px] font-bold transition-all border border-sky-400 text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/20 shadow-sm">Blue</button>
+                                    <button onclick="changeAppTheme('purple')" id="theme-btn-purple" class="py-1 px-1.5 rounded-full text-[9px] font-bold transition-all border border-stone-200 text-stone-500 hover:bg-stone-50 dark:border-stone-800 dark:hover:bg-stone-800">Purple</button>
+                                    <button onclick="changeAppTheme('green')" id="theme-btn-green" class="py-1 px-1.5 rounded-full text-[9px] font-bold transition-all border border-stone-200 text-stone-500 hover:bg-stone-50 dark:border-stone-800 dark:hover:bg-stone-800">Green</button>
+                                    <button onclick="changeAppTheme('rose')" id="theme-btn-rose" class="py-1 px-1.5 rounded-full text-[9px] font-bold transition-all border border-stone-200 text-stone-500 hover:bg-stone-50 dark:border-stone-800 dark:hover:bg-stone-800">Rose</button>
+                                </div>
                             </div>
 
                             <hr class="border-[#E7E0EC] dark:border-[#49454F]">
@@ -814,6 +843,11 @@
         });
         window.addEventListener('offline', () => {
             updateConnectionStatusUI();
+        });
+
+        // React dynamically to browser/system light/dark theme preference changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            applyTheme();
         });
 
         // Dark theme state tracking (Reactive to System and click cycling: system -> enabled -> disabled -> system)
@@ -2097,7 +2131,7 @@
             selEnd.setDate(selDate.getDate() + 1);
 
             const selectedDayActivities = activities.filter(a => a.timestamp >= selDate.getTime() && a.timestamp < selEnd.getTime());
-            selectedDayActivities.sort((a,b) => b.timestamp - a.timestamp); // Newest first
+            selectedDayActivities.sort((a,b) => a.timestamp - b.timestamp); // Oldest/Morning first
 
             // Calculate selected day counters
             let sFeed = 0, sSleepMin = 0, sNappy = 0, sMeds = 0, sTemp = 0;
@@ -3042,8 +3076,91 @@
             reader.readAsText(file);
         }
 
+        function changeAppTheme(theme) {
+            const root = document.documentElement;
+            localStorage.setItem('app-theme', theme);
+            
+            const palettes = {
+                blue: {
+                    '--m3-primary-light': '#005FAF',
+                    '--m3-primary-dark': '#A4C9FF',
+                    '--m3-primary-container-light': '#D4E3FF',
+                    '--m3-primary-container-dark': '#004786',
+                    '--m3-secondary-light': '#535F70',
+                    '--m3-secondary-dark': '#BBC7DB',
+                    '--m3-secondary-container-light': '#D7E3F7',
+                    '--m3-secondary-container-dark': '#3C4758',
+                    '--m3-tertiary-light': '#6B5778',
+                    '--m3-tertiary-dark': '#D7C0E5',
+                    '--m3-tertiary-container-light': '#F2DAFF',
+                    '--m3-tertiary-container-dark': '#52405E',
+                },
+                purple: {
+                    '--m3-primary-light': '#6750A4',
+                    '--m3-primary-dark': '#D0BCFF',
+                    '--m3-primary-container-light': '#EADDFF',
+                    '--m3-primary-container-dark': '#4F378B',
+                    '--m3-secondary-light': '#625B71',
+                    '--m3-secondary-dark': '#CCC2DC',
+                    '--m3-secondary-container-light': '#E8DEF8',
+                    '--m3-secondary-container-dark': '#4A4458',
+                    '--m3-tertiary-light': '#7D5260',
+                    '--m3-tertiary-dark': '#EFB8C8',
+                    '--m3-tertiary-container-light': '#FFD8E4',
+                    '--m3-tertiary-container-dark': '#633B48',
+                },
+                green: {
+                    '--m3-primary-light': '#386A20',
+                    '--m3-primary-dark': '#9CD67D',
+                    '--m3-primary-container-light': '#B8F197',
+                    '--m3-primary-container-dark': '#205107',
+                    '--m3-secondary-light': '#55624C',
+                    '--m3-secondary-dark': '#BDCBB1',
+                    '--m3-secondary-container-light': '#D9E7CB',
+                    '--m3-secondary-container-dark': '#3D4A36',
+                    '--m3-tertiary-light': '#386567',
+                    '--m3-tertiary-dark': '#A1CED0',
+                    '--m3-tertiary-container-light': '#BCEBEB',
+                    '--m3-tertiary-container-dark': '#1F4D4F',
+                },
+                rose: {
+                    '--m3-primary-light': '#9C4146',
+                    '--m3-primary-dark': '#FFB3B4',
+                    '--m3-primary-container-light': '#FFDAD9',
+                    '--m3-primary-container-dark': '#7E2A30',
+                    '--m3-secondary-light': '#775656',
+                    '--m3-secondary-dark': '#E6BDBB',
+                    '--m3-secondary-container-light': '#FFDAD8',
+                    '--m3-secondary-container-dark': '#5D3F3F',
+                    '--m3-tertiary-light': '#755A2F',
+                    '--m3-tertiary-dark': '#E5C18D',
+                    '--m3-tertiary-container-light': '#FFDDB1',
+                    '--m3-tertiary-container-dark': '#5B431A',
+                }
+            };
+
+            const colors = palettes[theme] || palettes.blue;
+            for (const [key, val] of Object.entries(colors)) {
+                root.style.setProperty(key, val);
+            }
+
+            ['blue', 'purple', 'green', 'rose'].forEach(t => {
+                const btn = document.getElementById('theme-btn-' + t);
+                if (!btn) return;
+                if (t === theme) {
+                    btn.className = "py-1 px-1.5 rounded-full text-[9px] font-bold transition-all border border-sky-400 text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/20 shadow-sm";
+                } else {
+                    btn.className = "py-1 px-1.5 rounded-full text-[9px] font-bold transition-all border border-stone-200 text-stone-500 hover:bg-stone-50 dark:border-stone-800 dark:hover:bg-stone-800";
+                }
+            });
+        }
+
         // Initialize Page
         async function init() {
+            // Restore theme selection
+            const savedTheme = localStorage.getItem('app-theme') || 'blue';
+            changeAppTheme(savedTheme);
+
             const savedKey = localStorage.getItem('gemini_api_key');
             if (savedKey) {
                 document.getElementById('settings-gemini-key').value = savedKey;
