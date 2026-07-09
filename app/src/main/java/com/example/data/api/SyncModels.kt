@@ -17,7 +17,8 @@ data class SyncRequest(
 @JsonClass(generateAdapter = true)
 data class SyncResponse(
     val serverSyncTime: Long,
-    val updates: List<BabyActivityDto>
+    val updates: List<BabyActivityDto>,
+    val dbInstanceId: String? = null
 )
 
 @JsonClass(generateAdapter = true)

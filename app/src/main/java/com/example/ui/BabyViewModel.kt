@@ -62,6 +62,9 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastSyncTime = MutableStateFlow(prefs.getLong("last_sync_time", 0L))
     val lastSyncTime: StateFlow<Long> = _lastSyncTime.asStateFlow()
 
+    private val _dbInstanceId = MutableStateFlow(prefs.getString("db_instance_id", "") ?: "")
+    val dbInstanceId: StateFlow<String> = _dbInstanceId.asStateFlow()
+
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean("is_dark_theme", false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
@@ -104,6 +107,7 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
     fun updateServerUrl(url: String) {
         _serverUrl.value = url
         prefs.edit().putString("server_url", url).apply()
+        clearSyncTime()
     }
 
     fun updateBabyName(name: String) {
@@ -129,7 +133,11 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSyncTime() {
         _lastSyncTime.value = 0L
-        prefs.edit().putLong("last_sync_time", 0L).apply()
+        _dbInstanceId.value = ""
+        prefs.edit()
+            .putLong("last_sync_time", 0L)
+            .remove("db_instance_id")
+            .apply()
     }
 
     // Start active sleep tracking timer
@@ -385,9 +393,13 @@ class BabyViewModel(application: Application) : AndroidViewModel(application) {
             _syncError.value = null
             _syncSuccess.value = false
             try {
-                val newSyncTime = repository.syncWithServer(url, _lastSyncTime.value)
-                _lastSyncTime.value = newSyncTime
-                prefs.edit().putLong("last_sync_time", newSyncTime).apply()
+                val syncResult = repository.syncWithServer(url, _lastSyncTime.value, _dbInstanceId.value)
+                _lastSyncTime.value = syncResult.serverSyncTime
+                _dbInstanceId.value = syncResult.dbInstanceId
+                prefs.edit()
+                    .putLong("last_sync_time", syncResult.serverSyncTime)
+                    .putString("db_instance_id", syncResult.dbInstanceId)
+                    .apply()
                 _syncSuccess.value = true
 
                 // Sync sleep timer status from server

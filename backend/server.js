@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 
+let currentDbInstanceId = '';
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -71,6 +73,22 @@ function createTables() {
                     db.run("INSERT INTO profile (key, value) VALUES ('babyDob', '0')");
                 }
             });
+            db.get("SELECT value FROM profile WHERE key = 'dbInstanceId'", [], (err, row) => {
+                if (row) {
+                    currentDbInstanceId = row.value;
+                    console.log('Loaded database instance ID:', currentDbInstanceId);
+                } else {
+                    const crypto = require('crypto');
+                    currentDbInstanceId = crypto.randomUUID();
+                    db.run("INSERT OR REPLACE INTO profile (key, value) VALUES ('dbInstanceId', ?)", [currentDbInstanceId], (err2) => {
+                        if (err2) {
+                            console.error('Error saving dbInstanceId:', err2.message);
+                        } else {
+                            console.log('Generated new database instance ID:', currentDbInstanceId);
+                        }
+                    });
+                }
+            });
         }
     });
 }
@@ -106,7 +124,8 @@ app.post('/api/activities/sync', (req, joinRes) => {
                 const newSyncTime = Date.now();
                 return joinRes.json({
                     serverSyncTime: newSyncTime,
-                    updates: serverUpdates
+                    updates: serverUpdates,
+                    dbInstanceId: currentDbInstanceId
                 });
             }
         );
@@ -194,7 +213,8 @@ app.post('/api/activities/sync', (req, joinRes) => {
                         const newSyncTime = Date.now();
                         joinRes.json({
                             serverSyncTime: newSyncTime,
-                            updates: serverUpdates
+                            updates: serverUpdates,
+                            dbInstanceId: currentDbInstanceId
                         });
                     }
                 );

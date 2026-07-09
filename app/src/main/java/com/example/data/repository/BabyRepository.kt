@@ -9,6 +9,11 @@ import com.example.data.model.BabyActivity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
+data class SyncResult(
+    val serverSyncTime: Long,
+    val dbInstanceId: String
+)
+
 class BabyRepository(private val dao: BabyActivityDao) {
 
     val allActiveActivities: Flow<List<BabyActivity>> = dao.getAllActiveActivities()
@@ -40,23 +45,40 @@ class BabyRepository(private val dao: BabyActivityDao) {
 
     /**
      * Performs a bidirectional sync with the self-hosted Unraid/Docker backend.
-     * Returns the new server sync time if successful, or throws an exception.
+     * Returns a SyncResult with the new server sync time and actual database ID.
      */
-    suspend fun syncWithServer(serverUrl: String, lastSyncTime: Long): Long {
+    suspend fun syncWithServer(serverUrl: String, lastSyncTime: Long, expectedDbId: String): SyncResult {
         if (serverUrl.isBlank()) throw IllegalArgumentException("Server URL is not set")
 
+        var actualLastSync = lastSyncTime
         // 1. Get all activities that have been updated since our last sync
-        val clientUpdates = dao.getActivitiesUpdatedSince(lastSyncTime)
-        val clientDtos = clientUpdates.map { it.toDto() }
+        var clientUpdates = dao.getActivitiesUpdatedSince(actualLastSync)
+        var clientDtos = clientUpdates.map { it.toDto() }
 
         // 2. Perform the sync network request
         val apiService = SyncClient.getApiService(serverUrl)
-        val request = SyncRequest(
-            lastSyncTime = lastSyncTime,
+        var request = SyncRequest(
+            lastSyncTime = actualLastSync,
             clientActivities = clientDtos
         )
 
-        val response = apiService.syncActivities(request)
+        var response = apiService.syncActivities(request)
+        val returnedDbId = response.dbInstanceId ?: ""
+
+        val isDbIdMismatch = expectedDbId.isNotEmpty() && returnedDbId.isNotEmpty() && returnedDbId != expectedDbId
+        val isFirstTimeDbIdTracking = expectedDbId.isEmpty() && returnedDbId.isNotEmpty() && lastSyncTime > 0L
+
+        if (isDbIdMismatch || isFirstTimeDbIdTracking) {
+            // Force a full sync because the server database has been wiped, replaced, or we are tracking a new server.
+            actualLastSync = 0L
+            clientUpdates = dao.getActivitiesUpdatedSince(actualLastSync)
+            clientDtos = clientUpdates.map { it.toDto() }
+            request = SyncRequest(
+                lastSyncTime = actualLastSync,
+                clientActivities = clientDtos
+            )
+            response = apiService.syncActivities(request)
+        }
 
         // 3. Save updates from the server to local database
         if (response.updates.isNotEmpty()) {
@@ -64,7 +86,10 @@ class BabyRepository(private val dao: BabyActivityDao) {
             dao.insertActivities(serverEntities)
         }
 
-        // 4. Return new sync time
-        return response.serverSyncTime
+        // 4. Return result
+        return SyncResult(
+            serverSyncTime = response.serverSyncTime,
+            dbInstanceId = returnedDbId
+        )
     }
 }
